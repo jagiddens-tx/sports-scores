@@ -19,14 +19,13 @@ interface Props {
 }
 
 const SPORT_SLUGS: Record<string, string> = {
+  epl: 'soccer/eng.1',
+  ncaaf: 'football/college-football',
   nfl: 'football/nfl',
   nba: 'basketball/nba',
   mlb: 'baseball/mlb',
   nhl: 'hockey/nhl',
-  ncaaf: 'football/college-football',
   ncaab: 'basketball/mens-college-basketball',
-  mls: 'soccer/usa.1',
-  epl: 'soccer/eng.1',
 }
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'

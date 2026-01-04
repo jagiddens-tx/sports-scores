@@ -8,14 +8,13 @@ import { useFavorites } from './hooks/useFavorites'
 import type { Sport } from './types'
 
 const SPORTS: Sport[] = [
+  { id: 'epl', name: 'EPL', espnSlug: 'soccer/eng.1' },
+  { id: 'ncaaf', name: 'CFB', espnSlug: 'football/college-football' },
   { id: 'nfl', name: 'NFL', espnSlug: 'football/nfl' },
   { id: 'nba', name: 'NBA', espnSlug: 'basketball/nba' },
   { id: 'mlb', name: 'MLB', espnSlug: 'baseball/mlb' },
   { id: 'nhl', name: 'NHL', espnSlug: 'hockey/nhl' },
-  { id: 'ncaaf', name: 'CFB', espnSlug: 'football/college-football' },
   { id: 'ncaab', name: 'CBB', espnSlug: 'basketball/mens-college-basketball' },
-  { id: 'mls', name: 'MLS', espnSlug: 'soccer/usa.1' },
-  { id: 'epl', name: 'EPL', espnSlug: 'soccer/eng.1' },
 ]
 
 type View = 'my-teams' | 'all-scores' | 'pick-teams'

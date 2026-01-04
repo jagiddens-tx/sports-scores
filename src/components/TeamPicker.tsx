@@ -17,14 +17,13 @@ interface Props {
 }
 
 const LEAGUES = [
+  { id: 'epl', name: 'Premier League', slug: 'soccer/eng.1' },
+  { id: 'ncaaf', name: 'College Football', slug: 'football/college-football' },
   { id: 'nfl', name: 'NFL', slug: 'football/nfl' },
   { id: 'nba', name: 'NBA', slug: 'basketball/nba' },
   { id: 'mlb', name: 'MLB', slug: 'baseball/mlb' },
   { id: 'nhl', name: 'NHL', slug: 'hockey/nhl' },
-  { id: 'ncaaf', name: 'College Football', slug: 'football/college-football' },
   { id: 'ncaab', name: 'College Basketball', slug: 'basketball/mens-college-basketball' },
-  { id: 'mls', name: 'MLS', slug: 'soccer/usa.1' },
-  { id: 'epl', name: 'Premier League', slug: 'soccer/eng.1' },
 ]
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
