@@ -159,20 +159,6 @@ export function GameDetail({ game, sportId }: Props) {
 
       {!loading && hasContent && (
         <>
-          {/* Teams header - side by side */}
-          <div className="detail-teams-header">
-            <div className="detail-team away">
-              <img src={game.awayTeam.logo} alt="" className="detail-team-logo" />
-              <span className="detail-team-name">{game.awayTeam.abbreviation}</span>
-              <span className="detail-team-score">{game.awayTeam.score}</span>
-            </div>
-            <div className="detail-team home">
-              <span className="detail-team-score">{game.homeTeam.score}</span>
-              <span className="detail-team-name">{game.homeTeam.abbreviation}</span>
-              <img src={game.homeTeam.logo} alt="" className="detail-team-logo" />
-            </div>
-          </div>
-
           {/* Goals */}
           {goals.length > 0 && (
             <div className="detail-section">
@@ -225,9 +211,9 @@ export function GameDetail({ game, sportId }: Props) {
               <h3 className="section-title">Match Stats</h3>
               <div className="stats-grid">
                 <div className="stats-header">
-                  <img src={game.awayTeam.logo} alt={game.awayTeam.abbreviation} className="stats-team-logo" />
-                  <span className="stats-vs">vs</span>
-                  <img src={game.homeTeam.logo} alt={game.homeTeam.abbreviation} className="stats-team-logo" />
+                  <span className="stats-team-name">{game.awayTeam.abbreviation}</span>
+                  <span className="stats-spacer"></span>
+                  <span className="stats-team-name">{game.homeTeam.abbreviation}</span>
                 </div>
                 <StatRow
                   label="Possession"
@@ -288,9 +274,9 @@ export function GameDetail({ game, sportId }: Props) {
               <h3 className="section-title">Team Stats</h3>
               <div className="stats-grid">
                 <div className="stats-header">
-                  <img src={game.awayTeam.logo} alt={game.awayTeam.abbreviation} className="stats-team-logo" />
-                  <span className="stats-vs">vs</span>
-                  <img src={game.homeTeam.logo} alt={game.homeTeam.abbreviation} className="stats-team-logo" />
+                  <span className="stats-team-name">{game.awayTeam.abbreviation}</span>
+                  <span className="stats-spacer"></span>
+                  <span className="stats-team-name">{game.homeTeam.abbreviation}</span>
                 </div>
                 <StatRow
                   label="Total Yards"

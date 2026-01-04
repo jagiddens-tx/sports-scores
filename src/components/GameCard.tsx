@@ -8,9 +8,10 @@ interface Props {
   isFavorite: (teamId: string, sport: string) => boolean
   toggleFavorite: (team: FavoriteTeam) => void
   onClick?: () => void
+  isExpanded?: boolean
 }
 
-export function GameCard({ game, sportId, isFavorite, toggleFavorite, onClick }: Props) {
+export function GameCard({ game, sportId, isFavorite, toggleFavorite, onClick, isExpanded }: Props) {
   const isLive = game.status === 'in'
   const isFinal = game.status === 'post'
 
@@ -26,7 +27,7 @@ export function GameCard({ game, sportId, isFavorite, toggleFavorite, onClick }:
   }
 
   return (
-    <div className={`game-card ${isLive ? 'live' : ''}`} onClick={onClick} style={{ cursor: onClick ? 'pointer' : undefined }}>
+    <div className={`game-card ${isLive ? 'live' : ''} ${isExpanded ? 'expanded' : ''}`} onClick={onClick} style={{ cursor: onClick ? 'pointer' : undefined }}>
       <div className="game-status">
         {isLive && <span className="live-indicator">LIVE</span>}
         <span className="status-detail">{game.statusDetail}</span>

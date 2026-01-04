@@ -58,6 +58,7 @@ export function ScoreBoard({ sport, isFavorite, toggleFavorite }: Props) {
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
             onClick={hasDetails ? () => handleGameClick(game) : undefined}
+            isExpanded={selectedGameId === game.id}
           />
           {hasDetails && selectedGameId === game.id && (
             <GameDetail

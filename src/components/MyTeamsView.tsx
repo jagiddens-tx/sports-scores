@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react'
 import type { FavoriteTeam } from '../hooks/useFavorites'
+import type { Game } from '../types'
+import { GameCard } from './GameCard'
+import { GameDetail } from './GameDetail'
 import './MyTeamsView.css'
 
-interface TeamGame {
-  id: string
-  team: FavoriteTeam
-  opponent: { name: string; logo: string; score: number }
-  teamScore: number
-  status: 'pre' | 'in' | 'post'
-  statusDetail: string
-  isHome: boolean
-  startTime: string
+interface FavoriteGame {
+  game: Game
+  sportId: string
 }
 
 interface Props {
@@ -30,14 +27,20 @@ const SPORT_SLUGS: Record<string, string> = {
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
 
+const SPORTS_WITH_DETAILS = ['epl', 'mls', 'ncaaf', 'nfl']
+
 export function MyTeamsView({ favorites, onEditTeams }: Props) {
-  const [games, setGames] = useState<TeamGame[]>([])
+  const [games, setGames] = useState<FavoriteGame[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+
+  const isFavorite = (teamId: string) => favorites.some(f => f.id === teamId)
 
   useEffect(() => {
     async function fetchGames() {
       setLoading(true)
-      const allGames: TeamGame[] = []
+      const allGames: FavoriteGame[] = []
+      const seenGameIds = new Set<string>()
 
       // Group favorites by sport
       const sportGroups = new Map<string, FavoriteTeam[]>()
@@ -63,29 +66,38 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
             const homeCompetitor = competition.competitors?.find((c: any) => c.homeAway === 'home')
             const awayCompetitor = competition.competitors?.find((c: any) => c.homeAway === 'away')
 
-            for (const favTeam of teams) {
-              const isHome = homeCompetitor?.team?.id === favTeam.id
-              const isAway = awayCompetitor?.team?.id === favTeam.id
+            // Check if any favorite team is in this game
+            const hasFavorite = teams.some(
+              t => t.id === homeCompetitor?.team?.id || t.id === awayCompetitor?.team?.id
+            )
 
-              if (isHome || isAway) {
-                const opponentCompetitor = isHome ? awayCompetitor : homeCompetitor
-                const teamCompetitor = isHome ? homeCompetitor : awayCompetitor
+            if (hasFavorite && !seenGameIds.has(event.id)) {
+              seenGameIds.add(event.id)
 
-                allGames.push({
-                  id: `${event.id}-${favTeam.id}`,
-                  team: favTeam,
-                  opponent: {
-                    name: opponentCompetitor?.team?.displayName || 'TBD',
-                    logo: opponentCompetitor?.team?.logo || '',
-                    score: parseInt(opponentCompetitor?.score || '0', 10),
-                  },
-                  teamScore: parseInt(teamCompetitor?.score || '0', 10),
-                  status: event.status?.type?.state || 'pre',
-                  statusDetail: event.status?.type?.shortDetail || '',
-                  isHome,
-                  startTime: event.date,
-                })
+              const game: Game = {
+                id: event.id,
+                status: event.status?.type?.state || 'pre',
+                statusDetail: event.status?.type?.shortDetail || '',
+                startTime: event.date,
+                homeTeam: {
+                  id: homeCompetitor?.team?.id || '',
+                  name: homeCompetitor?.team?.displayName || 'TBD',
+                  abbreviation: homeCompetitor?.team?.abbreviation || '',
+                  logo: homeCompetitor?.team?.logo || '',
+                  score: parseInt(homeCompetitor?.score || '0', 10),
+                },
+                awayTeam: {
+                  id: awayCompetitor?.team?.id || '',
+                  name: awayCompetitor?.team?.displayName || 'TBD',
+                  abbreviation: awayCompetitor?.team?.abbreviation || '',
+                  logo: awayCompetitor?.team?.logo || '',
+                  score: parseInt(awayCompetitor?.score || '0', 10),
+                },
+                venue: competition?.venue?.fullName,
+                broadcast: competition?.broadcasts?.[0]?.names?.[0],
               }
+
+              allGames.push({ game, sportId: sport })
             }
           }
         } catch {
@@ -96,7 +108,7 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
       // Sort: live games first, then upcoming, then final
       allGames.sort((a, b) => {
         const order = { in: 0, pre: 1, post: 2 }
-        return order[a.status] - order[b.status]
+        return order[a.game.status] - order[b.game.status]
       })
 
       setGames(allGames)
@@ -107,6 +119,10 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
     const interval = setInterval(fetchGames, 30000)
     return () => clearInterval(interval)
   }, [favorites])
+
+  const handleGameClick = (gameId: string) => {
+    setSelectedGameId(selectedGameId === gameId ? null : gameId)
+  }
 
   if (loading) {
     return (
@@ -133,27 +149,25 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
         </div>
       ) : (
         <div className="games-list">
-          {games.map((game) => (
-            <div key={game.id} className={`game-row ${game.status}`}>
-              <div className="team-side my-team">
-                {game.team.logo && <img src={game.team.logo} alt="" className="team-logo" />}
-                <span className="team-name">{game.team.abbreviation || game.team.name}</span>
-                <span className="score">{game.status !== 'pre' ? game.teamScore : ''}</span>
+          {games.map(({ game, sportId }) => {
+            const hasDetails = SPORTS_WITH_DETAILS.includes(sportId)
+            const isExpanded = selectedGameId === game.id
+            return (
+              <div key={game.id} className={`game-wrapper ${isExpanded ? 'expanded' : ''}`}>
+                <GameCard
+                  game={game}
+                  sportId={sportId}
+                  isFavorite={(teamId) => isFavorite(teamId)}
+                  toggleFavorite={() => {}} // No-op, already favorites
+                  onClick={hasDetails ? () => handleGameClick(game.id) : undefined}
+                  isExpanded={isExpanded}
+                />
+                {hasDetails && isExpanded && (
+                  <GameDetail game={game} sportId={sportId} />
+                )}
               </div>
-
-              <div className="game-info">
-                {game.status === 'in' && <span className="live-badge">LIVE</span>}
-                <span className="status">{game.statusDetail}</span>
-                <span className="location">{game.isHome ? 'HOME' : 'AWAY'}</span>
-              </div>
-
-              <div className="team-side opponent">
-                <span className="score">{game.status !== 'pre' ? game.opponent.score : ''}</span>
-                <span className="team-name">{game.opponent.name}</span>
-                {game.opponent.logo && <img src={game.opponent.logo} alt="" className="team-logo" />}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

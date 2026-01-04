@@ -110,9 +110,36 @@
   color: #4ae84a;
 }
 
-.game-venue {
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
-  color: #555;
-  text-align: center;
+/* Expanded state - horizontal layout */
+.game-card.expanded .teams {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.game-card.expanded .team {
+  flex: 1;
+  justify-content: center;
+  background: transparent;
+  padding: 0.25rem;
+}
+
+.game-card.expanded .team:first-child {
+  flex-direction: row;
+}
+
+.game-card.expanded .team:last-child {
+  flex-direction: row-reverse;
+}
+
+.game-card.expanded .team-name {
+  flex: none;
+}
+
+.game-card.expanded .team-score {
+  font-size: 2rem;
+}
+
+.game-card.expanded .favorite-btn {
+  display: none;
 }

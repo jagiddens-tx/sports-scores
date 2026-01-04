@@ -106,8 +106,24 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  background: #0f0f1a;
+  background: #1a1a2e;
   border-radius: 8px;
+  max-width: 75%;
+}
+
+.event-row.away {
+  align-self: flex-start;
+  border-left: 3px solid #4a4ae8;
+}
+
+.event-row.home {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+  border-right: 3px solid #4ae84a;
+}
+
+.event-row.home .event-minute {
+  color: #4ae84a;
 }
 
 .event-minute {
@@ -162,22 +178,28 @@
 .stats-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.5rem 0 0.75rem;
+  padding: 0.5rem 0;
   margin-bottom: 0.25rem;
 }
 
-.stats-team-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+.stats-team-name {
+  width: 60px;
+  font-weight: 600;
+  color: #888;
+  font-size: 0.8rem;
+  text-transform: uppercase;
 }
 
-.stats-vs {
-  color: #555;
-  font-size: 0.75rem;
-  text-transform: uppercase;
+.stats-team-name:first-child {
+  text-align: right;
+}
+
+.stats-team-name:last-child {
+  text-align: left;
+}
+
+.stats-spacer {
+  flex: 1;
 }
 
 .stat-row {
