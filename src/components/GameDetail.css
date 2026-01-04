@@ -39,6 +39,48 @@
   padding: 2rem;
 }
 
+/* Teams header - side by side */
+.detail-teams-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #2a2a3e;
+}
+
+.detail-team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-team.away {
+  flex-direction: row;
+}
+
+.detail-team.home {
+  flex-direction: row;
+}
+
+.detail-team-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.detail-team-name {
+  font-weight: 600;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.detail-team-score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
 .detail-section {
   margin-bottom: 1.5rem;
 }
@@ -165,20 +207,22 @@
   font-size: 0.85rem;
 }
 
-.detail-attendance {
+.detail-footer {
   text-align: center;
-  color: #666;
-  font-size: 0.85rem;
-  margin-top: 1rem;
-}
-
-.detail-venue {
-  text-align: center;
-  color: #555;
-  font-size: 0.8rem;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #2a2a3e;
+}
+
+.detail-venue {
+  color: #777;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.detail-attendance {
+  color: #555;
+  font-size: 0.8rem;
 }
 
 .detail-note {
@@ -199,6 +243,17 @@
   background: #1a1a2e;
   border-radius: 8px;
   padding: 0.75rem;
+  max-width: 85%;
+}
+
+.scoring-play.away {
+  align-self: flex-start;
+  border-left: 3px solid #4a4ae8;
+}
+
+.scoring-play.home {
+  align-self: flex-end;
+  border-right: 3px solid #4ae84a;
 }
 
 .scoring-play-header {
@@ -218,6 +273,10 @@
   font-weight: 600;
   color: #4ae84a;
   font-size: 0.85rem;
+}
+
+.scoring-play.away .scoring-play-type {
+  color: #4a4ae8;
 }
 
 .scoring-play-time {

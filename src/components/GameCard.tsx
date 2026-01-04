@@ -65,9 +65,6 @@ export function GameCard({ game, sportId, isFavorite, toggleFavorite, onClick }:
         </div>
       </div>
 
-      {game.venue && (
-        <div className="game-venue">{game.venue}</div>
-      )}
     </div>
   )
 }

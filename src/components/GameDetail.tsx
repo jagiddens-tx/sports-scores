@@ -159,6 +159,20 @@ export function GameDetail({ game, sportId }: Props) {
 
       {!loading && hasContent && (
         <>
+          {/* Teams header - side by side */}
+          <div className="detail-teams-header">
+            <div className="detail-team away">
+              <img src={game.awayTeam.logo} alt="" className="detail-team-logo" />
+              <span className="detail-team-name">{game.awayTeam.abbreviation}</span>
+              <span className="detail-team-score">{game.awayTeam.score}</span>
+            </div>
+            <div className="detail-team home">
+              <span className="detail-team-score">{game.homeTeam.score}</span>
+              <span className="detail-team-name">{game.homeTeam.abbreviation}</span>
+              <img src={game.homeTeam.logo} alt="" className="detail-team-logo" />
+            </div>
+          </div>
+
           {/* Goals */}
           {goals.length > 0 && (
             <div className="detail-section">
@@ -250,17 +264,20 @@ export function GameDetail({ game, sportId }: Props) {
             <div className="detail-section">
               <h3 className="section-title">Scoring</h3>
               <div className="scoring-plays">
-                {scoringPlays.map((play, i) => (
-                  <div key={i} className="scoring-play">
-                    <div className="scoring-play-header">
-                      <img src={play.teamLogo} alt="" className="scoring-play-logo" />
-                      <span className="scoring-play-type">{play.type}</span>
-                      <span className="scoring-play-time">{play.quarter} {play.clock}</span>
-                      <span className="scoring-play-score">{play.awayScore} - {play.homeScore}</span>
+                {scoringPlays.map((play, i) => {
+                  const isHome = play.teamId === game.homeTeam.id
+                  return (
+                    <div key={i} className={`scoring-play ${isHome ? 'home' : 'away'}`}>
+                      <div className="scoring-play-header">
+                        <img src={play.teamLogo} alt="" className="scoring-play-logo" />
+                        <span className="scoring-play-type">{play.type}</span>
+                        <span className="scoring-play-time">{play.quarter} {play.clock}</span>
+                        <span className="scoring-play-score">{play.awayScore} - {play.homeScore}</span>
+                      </div>
+                      <div className="scoring-play-desc">{play.description}</div>
                     </div>
-                    <div className="scoring-play-desc">{play.description}</div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -326,9 +343,14 @@ export function GameDetail({ game, sportId }: Props) {
             </div>
           )}
 
-          {details?.attendance && (
-            <div className="detail-attendance">
-              Attendance: {details.attendance.toLocaleString()}
+          {(game.venue || details?.attendance) && (
+            <div className="detail-footer">
+              {game.venue && <div className="detail-venue">{game.venue}</div>}
+              {details?.attendance && (
+                <div className="detail-attendance">
+                  Attendance: {details.attendance.toLocaleString()}
+                </div>
+              )}
             </div>
           )}
         </>
