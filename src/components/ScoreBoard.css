@@ -4,6 +4,21 @@
   gap: 1rem;
 }
 
+.game-wrapper {
+  display: contents;
+}
+
+/* When a game is expanded, make it span full width */
+.game-wrapper:has(.game-detail-expanded) {
+  display: block;
+  grid-column: 1 / -1;
+}
+
+/* Remove bottom border-radius from card when detail is expanded */
+.game-wrapper:has(.game-detail-expanded) .game-card {
+  border-radius: 12px 12px 0 0;
+}
+
 .scoreboard-loading,
 .scoreboard-error,
 .scoreboard-empty {

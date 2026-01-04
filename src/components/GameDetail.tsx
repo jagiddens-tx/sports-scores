@@ -5,7 +5,6 @@ import './GameDetail.css'
 interface Props {
   game: Game
   sportId: string
-  onClose: () => void
 }
 
 interface GameDetails {
@@ -20,7 +19,7 @@ const SPORT_SLUGS: Record<string, string> = {
   mls: 'soccer/usa.1',
 }
 
-export function GameDetail({ game, sportId, onClose }: Props) {
+export function GameDetail({ game, sportId }: Props) {
   const [details, setDetails] = useState<GameDetails | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -104,134 +103,110 @@ export function GameDetail({ game, sportId, onClose }: Props) {
     fetchDetails()
   }, [game.id, sportId])
 
-  const isSoccer = sportId === 'epl' || sportId === 'mls'
-
   const goals = details?.events.filter(e => e.type === 'goal') || []
   const cards = details?.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card') || []
 
+  const hasContent = goals.length > 0 || cards.length > 0 ||
+    details?.homeStats?.possession || details?.awayStats?.possession
+
   return (
-    <div className="game-detail-overlay" onClick={onClose}>
-      <div className="game-detail-panel" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>×</button>
+    <div className="game-detail-expanded">
+      {loading && <div className="detail-loading">Loading details...</div>}
 
-        <div className="detail-header">
-          <div className="detail-team">
-            <img src={game.awayTeam.logo} alt={game.awayTeam.name} className="detail-logo" />
-            <span className="detail-team-name">{game.awayTeam.name}</span>
-          </div>
-          <div className="detail-score">
-            <span className="score-num">{game.status !== 'pre' ? game.awayTeam.score : '-'}</span>
-            <span className="score-separator">-</span>
-            <span className="score-num">{game.status !== 'pre' ? game.homeTeam.score : '-'}</span>
-          </div>
-          <div className="detail-team">
-            <img src={game.homeTeam.logo} alt={game.homeTeam.name} className="detail-logo" />
-            <span className="detail-team-name">{game.homeTeam.name}</span>
-          </div>
-        </div>
+      {!loading && !hasContent && (
+        <div className="detail-note">No match events yet</div>
+      )}
 
-        <div className="detail-status">{game.statusDetail}</div>
-
-        {loading && <div className="detail-loading">Loading details...</div>}
-
-        {!loading && isSoccer && details && (
-          <>
-            {goals.length > 0 && (
-              <div className="detail-section">
-                <h3 className="section-title">Goals</h3>
-                <div className="events-list">
-                  {goals.map((event, i) => (
-                    <div key={i} className={`event-row ${event.teamId === game.homeTeam.id ? 'home' : 'away'}`}>
-                      <span className="event-minute">{event.minute}</span>
-                      <span className="event-icon">⚽</span>
-                      <span className="event-player">
-                        {event.player.name}
-                        {event.isPenalty && <span className="event-note"> (pen)</span>}
-                        {event.isOwnGoal && <span className="event-note"> (og)</span>}
-                      </span>
-                      <img
-                        src={event.teamId === game.homeTeam.id ? game.homeTeam.logo : game.awayTeam.logo}
-                        alt=""
-                        className="event-team-logo"
-                      />
-                    </div>
-                  ))}
-                </div>
+      {!loading && hasContent && (
+        <>
+          {/* Goals */}
+          {goals.length > 0 && (
+            <div className="detail-section">
+              <h3 className="section-title">Goals</h3>
+              <div className="events-list">
+                {goals.map((event, i) => (
+                  <div key={i} className={`event-row ${event.teamId === game.homeTeam.id ? 'home' : 'away'}`}>
+                    <span className="event-minute">{event.minute}</span>
+                    <span className="event-icon">⚽</span>
+                    <span className="event-player">
+                      {event.player.name}
+                      {event.isPenalty && <span className="event-note"> (pen)</span>}
+                      {event.isOwnGoal && <span className="event-note"> (og)</span>}
+                    </span>
+                    <img
+                      src={event.teamId === game.homeTeam.id ? game.homeTeam.logo : game.awayTeam.logo}
+                      alt=""
+                      className="event-team-logo"
+                    />
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {cards.length > 0 && (
-              <div className="detail-section">
-                <h3 className="section-title">Cards</h3>
-                <div className="events-list">
-                  {cards.map((event, i) => (
-                    <div key={i} className={`event-row ${event.teamId === game.homeTeam.id ? 'home' : 'away'}`}>
-                      <span className="event-minute">{event.minute}</span>
-                      <span className={`card-icon ${event.type === 'red_card' ? 'red' : 'yellow'}`}></span>
-                      <span className="event-player">{event.player.name}</span>
-                      <img
-                        src={event.teamId === game.homeTeam.id ? game.homeTeam.logo : game.awayTeam.logo}
-                        alt=""
-                        className="event-team-logo"
-                      />
-                    </div>
-                  ))}
-                </div>
+          {/* Cards */}
+          {cards.length > 0 && (
+            <div className="detail-section">
+              <h3 className="section-title">Cards</h3>
+              <div className="events-list">
+                {cards.map((event, i) => (
+                  <div key={i} className={`event-row ${event.teamId === game.homeTeam.id ? 'home' : 'away'}`}>
+                    <span className="event-minute">{event.minute}</span>
+                    <span className={`card-icon ${event.type === 'red_card' ? 'red' : 'yellow'}`}></span>
+                    <span className="event-player">{event.player.name}</span>
+                    <img
+                      src={event.teamId === game.homeTeam.id ? game.homeTeam.logo : game.awayTeam.logo}
+                      alt=""
+                      className="event-team-logo"
+                    />
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {(details.homeStats?.possession || details.awayStats?.possession) && (
-              <div className="detail-section">
-                <h3 className="section-title">Match Stats</h3>
-                <div className="stats-grid">
+          {/* Stats comparison */}
+          {(details?.homeStats?.possession || details?.awayStats?.possession) && (
+            <div className="detail-section">
+              <h3 className="section-title">Match Stats</h3>
+              <div className="stats-grid">
+                <StatRow
+                  label="Possession"
+                  away={details?.awayStats?.possession || '-'}
+                  home={details?.homeStats?.possession || '-'}
+                />
+                {(details?.homeStats?.shots !== undefined || details?.awayStats?.shots !== undefined) && (
                   <StatRow
-                    label="Possession"
-                    away={details.awayStats?.possession || '-'}
-                    home={details.homeStats?.possession || '-'}
+                    label="Shots"
+                    away={String(details?.awayStats?.shots ?? '-')}
+                    home={String(details?.homeStats?.shots ?? '-')}
                   />
-                  {(details.homeStats?.shots !== undefined || details.awayStats?.shots !== undefined) && (
-                    <StatRow
-                      label="Shots"
-                      away={String(details.awayStats?.shots ?? '-')}
-                      home={String(details.homeStats?.shots ?? '-')}
-                    />
-                  )}
-                  {(details.homeStats?.corners !== undefined || details.awayStats?.corners !== undefined) && (
-                    <StatRow
-                      label="Corners"
-                      away={String(details.awayStats?.corners ?? '-')}
-                      home={String(details.homeStats?.corners ?? '-')}
-                    />
-                  )}
-                  {(details.homeStats?.fouls !== undefined || details.awayStats?.fouls !== undefined) && (
-                    <StatRow
-                      label="Fouls"
-                      away={String(details.awayStats?.fouls ?? '-')}
-                      home={String(details.homeStats?.fouls ?? '-')}
-                    />
-                  )}
-                </div>
+                )}
+                {(details?.homeStats?.corners !== undefined || details?.awayStats?.corners !== undefined) && (
+                  <StatRow
+                    label="Corners"
+                    away={String(details?.awayStats?.corners ?? '-')}
+                    home={String(details?.homeStats?.corners ?? '-')}
+                  />
+                )}
+                {(details?.homeStats?.fouls !== undefined || details?.awayStats?.fouls !== undefined) && (
+                  <StatRow
+                    label="Fouls"
+                    away={String(details?.awayStats?.fouls ?? '-')}
+                    home={String(details?.homeStats?.fouls ?? '-')}
+                  />
+                )}
               </div>
-            )}
+            </div>
+          )}
 
-            {details.attendance && (
-              <div className="detail-attendance">
-                Attendance: {details.attendance.toLocaleString()}
-              </div>
-            )}
-          </>
-        )}
-
-        {!loading && !isSoccer && (
-          <div className="detail-note">
-            Detailed stats coming soon for this sport.
-          </div>
-        )}
-
-        {game.venue && (
-          <div className="detail-venue">{game.venue}</div>
-        )}
-      </div>
+          {details?.attendance && (
+            <div className="detail-attendance">
+              Attendance: {details.attendance.toLocaleString()}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

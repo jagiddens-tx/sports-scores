@@ -14,7 +14,7 @@ interface Props {
 
 export function ScoreBoard({ sport, isFavorite, toggleFavorite }: Props) {
   const { games, loading, error } = useScores(sport)
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
 
   if (loading) {
     return (
@@ -43,28 +43,30 @@ export function ScoreBoard({ sport, isFavorite, toggleFavorite }: Props) {
 
   const isSoccer = sport.id === 'epl' || sport.id === 'mls'
 
+  const handleGameClick = (game: Game) => {
+    // Toggle: click same game to close, different game to switch
+    setSelectedGameId(selectedGameId === game.id ? null : game.id)
+  }
+
   return (
-    <>
-      <div className="scoreboard">
-        {games.map((game) => (
+    <div className="scoreboard">
+      {games.map((game) => (
+        <div key={game.id} className="game-wrapper">
           <GameCard
-            key={game.id}
             game={game}
             sportId={sport.id}
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
-            onClick={isSoccer ? () => setSelectedGame(game) : undefined}
+            onClick={isSoccer ? () => handleGameClick(game) : undefined}
           />
-        ))}
-      </div>
-
-      {selectedGame && (
-        <GameDetail
-          game={selectedGame}
-          sportId={sport.id}
-          onClose={() => setSelectedGame(null)}
-        />
-      )}
-    </>
+          {isSoccer && selectedGameId === game.id && (
+            <GameDetail
+              game={game}
+              sportId={sport.id}
+            />
+          )}
+        </div>
+      ))}
+    </div>
   )
 }
