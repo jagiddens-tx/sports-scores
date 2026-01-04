@@ -1,0 +1,32 @@
+.sport-selector {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  background: #1a1a2e;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.sport-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.sport-btn:hover {
+  background: #2a2a4e;
+  color: #fff;
+}
+
+.sport-btn.active {
+  background: #4a4ae8;
+  color: #fff;
+}

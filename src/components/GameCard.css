@@ -1,0 +1,118 @@
+.game-card {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.game-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.game-card.live {
+  border: 2px solid #4ae84a;
+}
+
+.game-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.live-indicator {
+  background: #4ae84a;
+  color: #000;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-detail {
+  color: #888;
+}
+
+.broadcast {
+  margin-left: auto;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.teams {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: #0f0f1a;
+}
+
+.favorite-btn {
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.favorite-btn:hover {
+  color: #ffd700;
+  transform: scale(1.2);
+}
+
+.favorite-btn.is-favorite {
+  color: #ffd700;
+}
+
+.team.winner {
+  background: #1a2e1a;
+}
+
+.team-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.team-name {
+  flex: 1;
+  font-weight: 500;
+  color: #fff;
+}
+
+.team-score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 2rem;
+  text-align: right;
+}
+
+.team.winner .team-score {
+  color: #4ae84a;
+}
+
+.game-venue {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: #555;
+  text-align: center;
+}
