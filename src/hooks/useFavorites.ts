@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'sports-favorites'
+const SETUP_KEY = 'sports-setup-complete'
 
 export interface FavoriteTeam {
   id: string
@@ -12,6 +13,9 @@ export interface FavoriteTeam {
 
 export function useFavorites() {
   const [favorites, setFavorites] = useState<FavoriteTeam[]>([])
+  const [hasCompletedSetup, setHasCompletedSetup] = useState(() => {
+    return localStorage.getItem(SETUP_KEY) === 'true'
+  })
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -54,5 +58,10 @@ export function useFavorites() {
     }
   }
 
-  return { favorites, addFavorite, removeFavorite, isFavorite, toggleFavorite }
+  const completeSetup = () => {
+    localStorage.setItem(SETUP_KEY, 'true')
+    setHasCompletedSetup(true)
+  }
+
+  return { favorites, addFavorite, removeFavorite, isFavorite, toggleFavorite, hasCompletedSetup, completeSetup }
 }

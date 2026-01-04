@@ -1,0 +1,16 @@
+{
+  "name": "Live Scores",
+  "short_name": "Scores",
+  "description": "Live sports scores for your favorite teams",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a14",
+  "theme_color": "#4a4ae8",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
