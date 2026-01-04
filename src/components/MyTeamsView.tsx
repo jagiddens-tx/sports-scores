@@ -37,8 +37,13 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
   const isFavorite = (teamId: string) => favorites.some(f => f.id === teamId)
 
   useEffect(() => {
+    let isFirstLoad = games.length === 0
+
     async function fetchGames() {
-      setLoading(true)
+      // Only show loading spinner on first load, not refreshes
+      if (isFirstLoad) {
+        setLoading(true)
+      }
       const allGames: FavoriteGame[] = []
       const seenGameIds = new Set<string>()
 
@@ -112,7 +117,10 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
       })
 
       setGames(allGames)
-      setLoading(false)
+      if (isFirstLoad) {
+        setLoading(false)
+        isFirstLoad = false
+      }
     }
 
     fetchGames()

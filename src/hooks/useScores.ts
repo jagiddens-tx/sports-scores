@@ -10,9 +10,13 @@ export function useScores(sport: Sport) {
 
   useEffect(() => {
     let cancelled = false
+    let isFirstLoad = true
 
     async function fetchScores() {
-      setLoading(true)
+      // Only show loading spinner on first load, not refreshes
+      if (isFirstLoad) {
+        setLoading(true)
+      }
       setError(null)
 
       try {
@@ -57,8 +61,9 @@ export function useScores(sport: Sport) {
           setError(err instanceof Error ? err.message : 'Unknown error')
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && isFirstLoad) {
           setLoading(false)
+          isFirstLoad = false
         }
       }
     }
