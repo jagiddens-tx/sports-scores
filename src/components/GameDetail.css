@@ -163,12 +163,6 @@
   font-size: 0.8rem;
 }
 
-.event-team-logo {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
 .stats-grid {
   display: flex;
   flex-direction: column;

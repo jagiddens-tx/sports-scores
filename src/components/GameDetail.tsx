@@ -207,11 +207,6 @@ export function GameDetail({ game, sportId }: Props) {
                       {event.isPenalty && <span className="event-note"> (pen)</span>}
                       {event.isOwnGoal && <span className="event-note"> (og)</span>}
                     </span>
-                    <img
-                      src={event.teamId === game.homeTeam.id ? game.homeTeam.logo : game.awayTeam.logo}
-                      alt=""
-                      className="event-team-logo"
-                    />
                   </div>
                 ))}
               </div>
@@ -228,11 +223,6 @@ export function GameDetail({ game, sportId }: Props) {
                     <span className="event-minute">{event.minute}</span>
                     <span className={`card-icon ${event.type === 'red_card' ? 'red' : 'yellow'}`}></span>
                     <span className="event-player">{event.player.name}</span>
-                    <img
-                      src={event.teamId === game.homeTeam.id ? game.homeTeam.logo : game.awayTeam.logo}
-                      alt=""
-                      className="event-team-logo"
-                    />
                   </div>
                 ))}
               </div>
