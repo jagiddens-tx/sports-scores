@@ -35,6 +35,7 @@ function App() {
         }}
         toggleFavorite={toggleFavorite}
         isFavorite={isFavorite}
+        initialCount={favorites.length}
       />
     )
   }

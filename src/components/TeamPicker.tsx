@@ -12,7 +12,8 @@ interface Team {
 interface Props {
   onComplete: () => void
   toggleFavorite: (team: FavoriteTeam) => void
-  isFavorite: (teamId: string) => boolean
+  isFavorite: (teamId: string, sport: string) => boolean
+  initialCount: number
 }
 
 const LEAGUES = [
@@ -28,11 +29,11 @@ const LEAGUES = [
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
 
-export function TeamPicker({ onComplete, toggleFavorite, isFavorite }: Props) {
+export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCount }: Props) {
   const [selectedLeague, setSelectedLeague] = useState(LEAGUES[0])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCount, setSelectedCount] = useState(0)
+  const [selectedCount, setSelectedCount] = useState(initialCount)
 
   useEffect(() => {
     async function fetchTeams() {
@@ -56,7 +57,7 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite }: Props) {
   }, [selectedLeague])
 
   const handleTeamClick = (team: Team) => {
-    const wasSelected = isFavorite(team.id)
+    const wasSelected = isFavorite(team.id, selectedLeague.id)
     toggleFavorite({
       id: team.id,
       name: team.name,
@@ -93,12 +94,12 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite }: Props) {
           teams.map((team) => (
             <button
               key={team.id}
-              className={`team-btn ${isFavorite(team.id) ? 'selected' : ''}`}
+              className={`team-btn ${isFavorite(team.id, selectedLeague.id) ? 'selected' : ''}`}
               onClick={() => handleTeamClick(team)}
             >
               {team.logo && <img src={team.logo} alt="" className="team-logo" />}
               <span className="team-name">{team.name}</span>
-              {isFavorite(team.id) && <span className="check">✓</span>}
+              {isFavorite(team.id, selectedLeague.id) && <span className="check">✓</span>}
             </button>
           ))
         )}

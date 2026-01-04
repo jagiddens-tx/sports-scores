@@ -37,22 +37,22 @@ export function useFavorites() {
 
   const addFavorite = (team: FavoriteTeam) => {
     setFavorites((prev) => {
-      if (prev.some((t) => t.id === team.id)) return prev
+      if (prev.some((t) => t.id === team.id && t.sport === team.sport)) return prev
       return [...prev, team]
     })
   }
 
-  const removeFavorite = (teamId: string) => {
-    setFavorites((prev) => prev.filter((t) => t.id !== teamId))
+  const removeFavorite = (teamId: string, sport: string) => {
+    setFavorites((prev) => prev.filter((t) => !(t.id === teamId && t.sport === sport)))
   }
 
-  const isFavorite = (teamId: string) => {
-    return favorites.some((t) => t.id === teamId)
+  const isFavorite = (teamId: string, sport: string) => {
+    return favorites.some((t) => t.id === teamId && t.sport === sport)
   }
 
   const toggleFavorite = (team: FavoriteTeam) => {
-    if (isFavorite(team.id)) {
-      removeFavorite(team.id)
+    if (isFavorite(team.id, team.sport)) {
+      removeFavorite(team.id, team.sport)
     } else {
       addFavorite(team)
     }

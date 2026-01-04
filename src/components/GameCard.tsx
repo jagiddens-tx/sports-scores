@@ -5,7 +5,7 @@ import './GameCard.css'
 interface Props {
   game: Game
   sportId: string
-  isFavorite: (teamId: string) => boolean
+  isFavorite: (teamId: string, sport: string) => boolean
   toggleFavorite: (team: FavoriteTeam) => void
 }
 
@@ -35,11 +35,11 @@ export function GameCard({ game, sportId, isFavorite, toggleFavorite }: Props) {
       <div className="teams">
         <div className={`team ${isFinal && game.awayTeam.score > game.homeTeam.score ? 'winner' : ''}`}>
           <button
-            className={`favorite-btn ${isFavorite(game.awayTeam.id) ? 'is-favorite' : ''}`}
+            className={`favorite-btn ${isFavorite(game.awayTeam.id, sportId) ? 'is-favorite' : ''}`}
             onClick={(e) => handleFavoriteClick(game.awayTeam, e)}
-            title={isFavorite(game.awayTeam.id) ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorite(game.awayTeam.id, sportId) ? 'Remove from favorites' : 'Add to favorites'}
           >
-            {isFavorite(game.awayTeam.id) ? '★' : '☆'}
+            {isFavorite(game.awayTeam.id, sportId) ? '★' : '☆'}
           </button>
           {game.awayTeam.logo && (
             <img src={game.awayTeam.logo} alt={game.awayTeam.name} className="team-logo" />
@@ -50,11 +50,11 @@ export function GameCard({ game, sportId, isFavorite, toggleFavorite }: Props) {
 
         <div className={`team ${isFinal && game.homeTeam.score > game.awayTeam.score ? 'winner' : ''}`}>
           <button
-            className={`favorite-btn ${isFavorite(game.homeTeam.id) ? 'is-favorite' : ''}`}
+            className={`favorite-btn ${isFavorite(game.homeTeam.id, sportId) ? 'is-favorite' : ''}`}
             onClick={(e) => handleFavoriteClick(game.homeTeam, e)}
-            title={isFavorite(game.homeTeam.id) ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorite(game.homeTeam.id, sportId) ? 'Remove from favorites' : 'Add to favorites'}
           >
-            {isFavorite(game.homeTeam.id) ? '★' : '☆'}
+            {isFavorite(game.homeTeam.id, sportId) ? '★' : '☆'}
           </button>
           {game.homeTeam.logo && (
             <img src={game.homeTeam.logo} alt={game.homeTeam.name} className="team-logo" />

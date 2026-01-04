@@ -6,7 +6,7 @@ import './ScoreBoard.css'
 
 interface Props {
   sport: Sport
-  isFavorite: (teamId: string) => boolean
+  isFavorite: (teamId: string, sport: string) => boolean
   toggleFavorite: (team: FavoriteTeam) => void
 }
 
