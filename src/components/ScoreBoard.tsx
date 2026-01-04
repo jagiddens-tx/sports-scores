@@ -41,7 +41,7 @@ export function ScoreBoard({ sport, isFavorite, toggleFavorite }: Props) {
     )
   }
 
-  const isSoccer = sport.id === 'epl' || sport.id === 'mls'
+  const hasDetails = ['epl', 'mls', 'ncaaf', 'nfl'].includes(sport.id)
 
   const handleGameClick = (game: Game) => {
     // Toggle: click same game to close, different game to switch
@@ -57,9 +57,9 @@ export function ScoreBoard({ sport, isFavorite, toggleFavorite }: Props) {
             sportId={sport.id}
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
-            onClick={isSoccer ? () => handleGameClick(game) : undefined}
+            onClick={hasDetails ? () => handleGameClick(game) : undefined}
           />
-          {isSoccer && selectedGameId === game.id && (
+          {hasDetails && selectedGameId === game.id && (
             <GameDetail
               game={game}
               sportId={sport.id}
