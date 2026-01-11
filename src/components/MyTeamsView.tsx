@@ -8,6 +8,7 @@ import './MyTeamsView.css'
 interface FavoriteGame {
   game: Game
   sportId: string
+  espnSlug: string  // The actual ESPN API slug for this competition
 }
 
 interface Props {
@@ -24,6 +25,14 @@ const SPORT_SLUGS: Record<string, string> = {
   nhl: 'hockey/nhl',
   ncaab: 'basketball/mens-college-basketball',
 }
+
+// Additional competitions to check for EPL teams
+const EPL_EXTRA_COMPETITIONS = [
+  'soccer/eng.fa',        // FA Cup
+  'soccer/eng.league_cup', // Carabao Cup
+  'soccer/uefa.champions', // Champions League
+  'soccer/uefa.europa',    // Europa League
+]
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
 
@@ -55,11 +64,8 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
         sportGroups.set(team.sport, existing)
       }
 
-      // Fetch each sport
-      for (const [sport, teams] of sportGroups) {
-        const slug = SPORT_SLUGS[sport]
-        if (!slug) continue
-
+      // Helper to fetch games from a slug and add matching favorites
+      async function fetchFromSlug(slug: string, teams: FavoriteTeam[], sportId: string) {
         try {
           const res = await fetch(`${ESPN_API}/${slug}/scoreboard`)
           const data = await res.json()
@@ -102,11 +108,26 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
                 broadcast: competition?.broadcasts?.[0]?.names?.[0],
               }
 
-              allGames.push({ game, sportId: sport })
+              allGames.push({ game, sportId, espnSlug: slug })
             }
           }
         } catch {
           // Skip failed fetches
+        }
+      }
+
+      // Fetch each sport
+      for (const [sport, teams] of sportGroups) {
+        const slug = SPORT_SLUGS[sport]
+        if (!slug) continue
+
+        await fetchFromSlug(slug, teams, sport)
+
+        // For EPL teams, also check other competitions they might be playing in
+        if (sport === 'epl') {
+          for (const extraSlug of EPL_EXTRA_COMPETITIONS) {
+            await fetchFromSlug(extraSlug, teams, 'epl')
+          }
         }
       }
 
@@ -157,7 +178,7 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
         </div>
       ) : (
         <div className="games-list">
-          {games.map(({ game, sportId }) => {
+          {games.map(({ game, sportId, espnSlug }) => {
             const hasDetails = SPORTS_WITH_DETAILS.includes(sportId)
             const isExpanded = selectedGameId === game.id
             return (
@@ -171,7 +192,7 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
                   isExpanded={isExpanded}
                 />
                 {hasDetails && isExpanded && (
-                  <GameDetail game={game} sportId={sportId} />
+                  <GameDetail game={game} sportId={sportId} espnSlug={espnSlug} />
                 )}
               </div>
             )

@@ -112,6 +112,12 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCoun
         >
           {selectedCount === 0 ? 'Select at least one team' : `Done (${selectedCount} selected)`}
         </button>
+        <button
+          className="update-link"
+          onClick={() => window.location.reload()}
+        >
+          Check for updates
+        </button>
       </div>
     </div>
   )

@@ -5,6 +5,23 @@ import './GameDetail.css'
 interface Props {
   game: Game
   sportId: string
+  espnSlug?: string  // Optional: use this slug instead of looking up from sportId
+}
+
+interface Player {
+  name: string
+  jersey: string
+  position: string
+  positionAbbr: string
+  starter: boolean
+}
+
+interface TeamLineup {
+  teamId: string
+  teamName: string
+  teamAbbr: string
+  formation?: string
+  players: Player[]
 }
 
 interface GameDetails {
@@ -13,6 +30,8 @@ interface GameDetails {
   homeStats?: TeamStats
   awayStats?: TeamStats
   attendance?: number
+  homeLineup?: TeamLineup
+  awayLineup?: TeamLineup
 }
 
 const SPORT_SLUGS: Record<string, string> = {
@@ -25,37 +44,41 @@ const SPORT_SLUGS: Record<string, string> = {
 const FOOTBALL_SPORTS = ['ncaaf', 'nfl']
 const SOCCER_SPORTS = ['epl', 'mls']
 
-export function GameDetail({ game, sportId }: Props) {
+export function GameDetail({ game, sportId, espnSlug }: Props) {
   const [details, setDetails] = useState<GameDetails | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'match' | 'home' | 'away'>('match')
+
+  // Determine sport type from sportId or espnSlug
+  const isSoccer = SOCCER_SPORTS.includes(sportId) || espnSlug?.startsWith('soccer/')
 
   useEffect(() => {
     const fetchDetails = async () => {
-      const slug = SPORT_SLUGS[sportId]
+      // Use provided espnSlug, or fall back to lookup
+      const slug = espnSlug || SPORT_SLUGS[sportId]
       if (!slug) {
         setLoading(false)
         return
       }
 
       const isFootball = FOOTBALL_SPORTS.includes(sportId)
+      const isSoccerFetch = SOCCER_SPORTS.includes(sportId) || slug.startsWith('soccer/')
 
       try {
-        // Football uses the summary endpoint for detailed stats
-        // Soccer uses the scoreboard endpoint which includes match details
-        const endpoint = isFootball
-          ? `https://site.api.espn.com/apis/site/v2/sports/${slug}/summary?event=${game.id}`
-          : `https://site.api.espn.com/apis/site/v2/sports/${slug}/scoreboard`
-
-        const res = await fetch(endpoint)
-        const data = await res.json()
-
         let events: GameEvent[] = []
         let scoringPlays: ScoringPlay[] = []
         let homeStats: TeamStats = {}
         let awayStats: TeamStats = {}
         let attendance: number | undefined
+        let homeLineup: TeamLineup | undefined
+        let awayLineup: TeamLineup | undefined
 
         if (isFootball) {
+          // Football uses the summary endpoint for detailed stats
+          const endpoint = `https://site.api.espn.com/apis/site/v2/sports/${slug}/summary?event=${game.id}`
+          const res = await fetch(endpoint)
+          const data = await res.json()
+
           // Parse football data from summary endpoint
           const boxscore = data.boxscore
           if (boxscore?.teams) {
@@ -96,9 +119,18 @@ export function GameDetail({ game, sportId }: Props) {
           // Get attendance from gameInfo
           attendance = data.gameInfo?.attendance
 
-        } else {
-          // Parse soccer data from scoreboard endpoint
-          const event = data.events?.find((e: any) => e.id === game.id)
+        } else if (isSoccerFetch) {
+          // Soccer: fetch both scoreboard (for match events) and summary (for lineups)
+          const [scoreboardRes, summaryRes] = await Promise.all([
+            fetch(`https://site.api.espn.com/apis/site/v2/sports/${slug}/scoreboard`),
+            fetch(`https://site.api.espn.com/apis/site/v2/sports/${slug}/summary?event=${game.id}`)
+          ])
+
+          const scoreboardData = await scoreboardRes.json()
+          const summaryData = await summaryRes.json()
+
+          // Parse match events from scoreboard
+          const event = scoreboardData.events?.find((e: any) => e.id === game.id)
           if (!event) {
             setLoading(false)
             return
@@ -151,6 +183,33 @@ export function GameDetail({ game, sportId }: Props) {
           homeStats = parseStats(homeTeam)
           awayStats = parseStats(awayTeam)
           attendance = competition.attendance
+
+          // Parse lineups from summary
+          const parseLineup = (roster: any): TeamLineup => {
+            const team = roster.team || {}
+            return {
+              teamId: team.id || '',
+              teamName: team.displayName || '',
+              teamAbbr: team.abbreviation || '',
+              formation: roster.formation,
+              players: (roster.roster || []).map((p: any) => ({
+                name: p.athlete?.displayName || '',
+                jersey: p.jersey || '',
+                position: p.position?.displayName || '',
+                positionAbbr: p.position?.abbreviation || '',
+                starter: p.starter || false,
+              }))
+            }
+          }
+
+          for (const roster of summaryData.rosters || []) {
+            const isHome = roster.homeAway === 'home'
+            if (isHome) {
+              homeLineup = parseLineup(roster)
+            } else {
+              awayLineup = parseLineup(roster)
+            }
+          }
         }
 
         setDetails({
@@ -159,6 +218,8 @@ export function GameDetail({ game, sportId }: Props) {
           homeStats,
           awayStats,
           attendance,
+          homeLineup,
+          awayLineup,
         })
       } catch (err) {
         console.error('Failed to fetch game details:', err)
@@ -168,9 +229,8 @@ export function GameDetail({ game, sportId }: Props) {
     }
 
     fetchDetails()
-  }, [game.id, sportId])
+  }, [game.id, sportId, espnSlug])
 
-  const isSoccer = SOCCER_SPORTS.includes(sportId)
   const isFootball = FOOTBALL_SPORTS.includes(sportId)
 
   const goals = details?.events.filter(e => e.type === 'goal') || []
@@ -181,7 +241,11 @@ export function GameDetail({ game, sportId }: Props) {
     details?.homeStats?.possession || details?.awayStats?.possession
   const hasFootballContent = scoringPlays.length > 0 ||
     details?.homeStats?.totalYards !== undefined || details?.awayStats?.totalYards !== undefined
-  const hasContent = isSoccer ? hasSoccerContent : hasFootballContent
+  const hasLineups = details?.homeLineup?.players?.length || details?.awayLineup?.players?.length
+  const hasContent = isSoccer ? (hasSoccerContent || hasLineups) : hasFootballContent
+
+  // For soccer, show tabs if we have lineups
+  const showTabs = isSoccer && hasLineups
 
   return (
     <div className="game-detail-expanded">
@@ -193,7 +257,34 @@ export function GameDetail({ game, sportId }: Props) {
 
       {!loading && hasContent && (
         <>
-          {/* Goals */}
+          {/* Tabs for soccer games with lineups */}
+          {showTabs && (
+            <div className="detail-tabs">
+              <button
+                className={`detail-tab ${activeTab === 'match' ? 'active' : ''}`}
+                onClick={() => setActiveTab('match')}
+              >
+                Match
+              </button>
+              <button
+                className={`detail-tab ${activeTab === 'away' ? 'active' : ''}`}
+                onClick={() => setActiveTab('away')}
+              >
+                {game.awayTeam.abbreviation}
+              </button>
+              <button
+                className={`detail-tab ${activeTab === 'home' ? 'active' : ''}`}
+                onClick={() => setActiveTab('home')}
+              >
+                {game.homeTeam.abbreviation}
+              </button>
+            </div>
+          )}
+
+          {/* Match Events Tab (or default for non-soccer) */}
+          {(activeTab === 'match' || !showTabs) && (
+            <>
+              {/* Goals */}
           {goals.length > 0 && (
             <div className="detail-section">
               <h3 className="section-title">Goals</h3>
@@ -267,6 +358,18 @@ export function GameDetail({ game, sportId }: Props) {
                 )}
               </div>
             </div>
+          )}
+            </>
+          )}
+
+          {/* Away Team Lineup Tab */}
+          {activeTab === 'away' && details?.awayLineup && (
+            <FormationView lineup={details.awayLineup} />
+          )}
+
+          {/* Home Team Lineup Tab */}
+          {activeTab === 'home' && details?.homeLineup && (
+            <FormationView lineup={details.homeLineup} />
           )}
 
           {/* Football Scoring Plays */}
@@ -375,6 +478,68 @@ function StatRow({ label, away, home }: { label: string; away: string; home: str
       <span className="stat-value away">{away}</span>
       <span className="stat-label">{label}</span>
       <span className="stat-value home">{home}</span>
+    </div>
+  )
+}
+
+// Position mapping for formation layout (row index, roughly)
+const POSITION_ROWS: Record<string, number> = {
+  'G': 0,           // Goalkeeper
+  'LB': 1, 'RB': 1, 'CD-L': 1, 'CD-R': 1, 'CD': 1, 'CB': 1, 'D': 1, // Defenders
+  'DM': 2, 'CDM': 2, 'LDM': 2, 'RDM': 2, // Defensive mids
+  'CM': 3, 'LM': 3, 'RM': 3, 'M': 3, // Midfielders
+  'AM': 4, 'AM-L': 4, 'AM-R': 4, 'CAM': 4, 'LW': 4, 'RW': 4, // Attacking mids/wingers
+  'LF': 5, 'RF': 5, 'CF': 5, 'F': 5, 'ST': 5, 'S': 5, // Forwards
+}
+
+function FormationView({ lineup }: { lineup: TeamLineup }) {
+  const starters = lineup.players.filter(p => p.starter)
+  const subs = lineup.players.filter(p => !p.starter)
+
+  // Group starters by position row
+  const rows: Player[][] = [[], [], [], [], [], []]
+  for (const player of starters) {
+    const rowIndex = POSITION_ROWS[player.positionAbbr] ?? 3
+    rows[rowIndex].push(player)
+  }
+
+  // Filter out empty rows
+  const nonEmptyRows = rows.filter(row => row.length > 0)
+
+  return (
+    <div className="formation-view">
+      <div className="formation-header">
+        <span className="formation-team">{lineup.teamName}</span>
+        {lineup.formation && <span className="formation-shape">{lineup.formation}</span>}
+      </div>
+
+      <div className="formation-pitch">
+        {nonEmptyRows.map((row, i) => (
+          <div key={i} className="formation-row">
+            {row.map((player, j) => (
+              <div key={j} className="formation-player">
+                <span className="player-jersey">{player.jersey}</span>
+                <span className="player-name">{player.name.split(' ').pop()}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {subs.length > 0 && (
+        <div className="formation-subs">
+          <h4 className="subs-title">Substitutes</h4>
+          <div className="subs-list">
+            {subs.map((player, i) => (
+              <div key={i} className="sub-player">
+                <span className="sub-jersey">{player.jersey}</span>
+                <span className="sub-name">{player.name}</span>
+                <span className="sub-pos">{player.positionAbbr}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -136,6 +136,13 @@
   flex: none;
 }
 
+/* Hide team names on mobile when expanded to prevent crowding */
+@media (max-width: 480px) {
+  .game-card.expanded .team-name {
+    display: none;
+  }
+}
+
 .game-card.expanded .team-score {
   font-size: 2rem;
 }

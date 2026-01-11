@@ -312,3 +312,155 @@
   font-size: 0.8rem;
   line-height: 1.4;
 }
+
+/* Detail Tabs */
+.detail-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #2a2a3e;
+}
+
+.detail-tab {
+  flex: 1;
+  background: #1a1a2e;
+  border: none;
+  color: #888;
+  padding: 0.5rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.detail-tab:hover {
+  background: #252540;
+  color: #aaa;
+}
+
+.detail-tab.active {
+  background: #4a4ae8;
+  color: #fff;
+}
+
+/* Formation View */
+.formation-view {
+  padding: 0.5rem 0;
+}
+
+.formation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.formation-team {
+  font-weight: 600;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.formation-shape {
+  background: #1a1a2e;
+  color: #4a4ae8;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.formation-pitch {
+  background: linear-gradient(180deg, #1a3d1a 0%, #164016 100%);
+  border-radius: 12px;
+  padding: 1.5rem 0.5rem;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 1rem;
+  min-height: 280px;
+}
+
+.formation-row {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.formation-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.player-jersey {
+  background: #fff;
+  color: #000;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.player-name {
+  color: #fff;
+  font-size: 0.7rem;
+  text-align: center;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.formation-subs {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2a2a3e;
+}
+
+.subs-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  margin: 0 0 0.75rem 0;
+}
+
+.subs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sub-player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1a1a2e;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.sub-jersey {
+  color: #4a4ae8;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+.sub-name {
+  color: #ccc;
+}
+
+.sub-pos {
+  color: #666;
+  font-size: 0.7rem;
+}

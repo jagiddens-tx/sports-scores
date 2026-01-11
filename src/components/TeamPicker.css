@@ -131,3 +131,20 @@
   color: #666;
   cursor: not-allowed;
 }
+
+.update-link {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.update-link:hover {
+  color: #888;
+}
