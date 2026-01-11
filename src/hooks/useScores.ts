@@ -26,34 +26,45 @@ export function useScores(sport: Sport) {
         const data = await response.json()
         if (cancelled) return
 
-        const games: Game[] = data.events?.map((event: any) => {
-          const competition = event.competitions?.[0]
-          const homeTeam = competition?.competitors?.find((c: any) => c.homeAway === 'home')
-          const awayTeam = competition?.competitors?.find((c: any) => c.homeAway === 'away')
+        const now = Date.now()
+        const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
 
-          return {
-            id: event.id,
-            status: event.status?.type?.state || 'pre',
-            statusDetail: event.status?.type?.shortDetail || '',
-            startTime: event.date,
-            homeTeam: {
-              id: homeTeam?.team?.id || '',
-              name: homeTeam?.team?.displayName || 'TBD',
-              abbreviation: homeTeam?.team?.abbreviation || '',
-              logo: homeTeam?.team?.logo || '',
-              score: parseInt(homeTeam?.score || '0', 10),
-            },
-            awayTeam: {
-              id: awayTeam?.team?.id || '',
-              name: awayTeam?.team?.displayName || 'TBD',
-              abbreviation: awayTeam?.team?.abbreviation || '',
-              logo: awayTeam?.team?.logo || '',
-              score: parseInt(awayTeam?.score || '0', 10),
-            },
-            venue: competition?.venue?.fullName,
-            broadcast: competition?.broadcasts?.[0]?.names?.[0],
-          }
-        }) || []
+        const games: Game[] = (data.events || [])
+          .map((event: any) => {
+            const competition = event.competitions?.[0]
+            const homeTeam = competition?.competitors?.find((c: any) => c.homeAway === 'home')
+            const awayTeam = competition?.competitors?.find((c: any) => c.homeAway === 'away')
+
+            return {
+              id: event.id,
+              status: event.status?.type?.state || 'pre',
+              statusDetail: event.status?.type?.shortDetail || '',
+              startTime: event.date,
+              homeTeam: {
+                id: homeTeam?.team?.id || '',
+                name: homeTeam?.team?.displayName || 'TBD',
+                abbreviation: homeTeam?.team?.abbreviation || '',
+                logo: homeTeam?.team?.logo || '',
+                score: parseInt(homeTeam?.score || '0', 10),
+              },
+              awayTeam: {
+                id: awayTeam?.team?.id || '',
+                name: awayTeam?.team?.displayName || 'TBD',
+                abbreviation: awayTeam?.team?.abbreviation || '',
+                logo: awayTeam?.team?.logo || '',
+                score: parseInt(awayTeam?.score || '0', 10),
+              },
+              venue: competition?.venue?.fullName,
+              broadcast: competition?.broadcasts?.[0]?.names?.[0],
+            }
+          })
+          .filter((game: Game) => {
+            // Keep all non-finished games
+            if (game.status !== 'post') return true
+            // For finished games, only keep those within 48 hours
+            const gameTime = new Date(game.startTime).getTime()
+            return now - gameTime < FORTY_EIGHT_HOURS
+          })
 
         setGames(games)
       } catch (err) {

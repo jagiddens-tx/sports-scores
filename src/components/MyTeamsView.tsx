@@ -47,12 +47,14 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
 
   useEffect(() => {
     let isFirstLoad = games.length === 0
+    const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
 
     async function fetchGames() {
       // Only show loading spinner on first load, not refreshes
       if (isFirstLoad) {
         setLoading(true)
       }
+      const now = Date.now()
       const allGames: FavoriteGame[] = []
       const seenGameIds = new Set<string>()
 
@@ -83,6 +85,14 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
             )
 
             if (hasFavorite && !seenGameIds.has(event.id)) {
+              const gameStatus = event.status?.type?.state || 'pre'
+              const gameTime = new Date(event.date).getTime()
+
+              // Skip finished games older than 48 hours
+              if (gameStatus === 'post' && now - gameTime >= FORTY_EIGHT_HOURS) {
+                continue
+              }
+
               seenGameIds.add(event.id)
 
               const game: Game = {
