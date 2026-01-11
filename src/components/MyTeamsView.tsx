@@ -5,6 +5,15 @@ import { GameCard } from './GameCard'
 import { GameDetail } from './GameDetail'
 import './MyTeamsView.css'
 
+const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000
+
+function shouldFlushCFBGame(game: Game): boolean {
+  if (game.status !== 'post') return false
+  const gameTime = new Date(game.startTime).getTime()
+  const now = Date.now()
+  return now - gameTime > FORTY_EIGHT_HOURS_MS
+}
+
 interface FavoriteGame {
   game: Game
   sportId: string
@@ -77,8 +86,6 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
             )
 
             if (hasFavorite && !seenGameIds.has(event.id)) {
-              seenGameIds.add(event.id)
-
               const game: Game = {
                 id: event.id,
                 status: event.status?.type?.state || 'pre',
@@ -102,6 +109,12 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
                 broadcast: competition?.broadcasts?.[0]?.names?.[0],
               }
 
+              // Flush CFB games 48 hours after completion
+              if (sport === 'ncaaf' && shouldFlushCFBGame(game)) {
+                continue
+              }
+
+              seenGameIds.add(event.id)
               allGames.push({ game, sportId: sport })
             }
           }

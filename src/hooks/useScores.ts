@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react'
 import type { Game, Sport } from '../types'
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
+const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000
+
+function shouldFlushGame(game: Game, isCFB: boolean): boolean {
+  if (!isCFB || game.status !== 'post') return false
+  const gameTime = new Date(game.startTime).getTime()
+  const now = Date.now()
+  return now - gameTime > FORTY_EIGHT_HOURS_MS
+}
 
 export function useScores(sport: Sport) {
   const [games, setGames] = useState<Game[]>([])
@@ -55,7 +63,10 @@ export function useScores(sport: Sport) {
           }
         }) || []
 
-        setGames(games)
+        const isCFB = sport.espnSlug === 'football/college-football'
+        const filteredGames = games.filter(game => !shouldFlushGame(game, isCFB))
+
+        setGames(filteredGames)
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Unknown error')
