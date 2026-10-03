@@ -1,22 +1,22 @@
-import type { Sport } from '../types'
+import type { League } from '../espn'
 import './SportSelector.css'
 
 interface Props {
-  sports: Sport[]
-  selected: Sport
-  onSelect: (sport: Sport) => void
+  leagues: League[]
+  selected: League
+  onSelect: (league: League) => void
 }
 
-export function SportSelector({ sports, selected, onSelect }: Props) {
+export function SportSelector({ leagues, selected, onSelect }: Props) {
   return (
     <nav className="sport-selector">
-      {sports.map((sport) => (
+      {leagues.map((league) => (
         <button
-          key={sport.id}
-          className={`sport-btn ${selected.id === sport.id ? 'active' : ''}`}
-          onClick={() => onSelect(sport)}
+          key={league.id}
+          className={`sport-btn ${selected.id === league.id ? 'active' : ''}`}
+          onClick={() => onSelect(league)}
         >
-          {sport.name}
+          {league.name}
         </button>
       ))}
     </nav>

@@ -1,5 +1,6 @@
 import type { Game } from '../types'
 import type { FavoriteTeam } from '../hooks/useFavorites'
+import { TeamLogo } from './TeamLogo'
 import './GameCard.css'
 
 interface Props {
@@ -43,9 +44,7 @@ export function GameCard({ game, sportId, isFavorite, toggleFavorite, onClick, i
           >
             {isFavorite(game.awayTeam.id, sportId) ? '★' : '☆'}
           </button>
-          {game.awayTeam.logo && (
-            <img src={game.awayTeam.logo} alt={game.awayTeam.name} className="team-logo" loading="lazy" decoding="async" />
-          )}
+          <TeamLogo src={game.awayTeam.logo} size={32} alt={game.awayTeam.name} className="team-logo" />
           <span className="team-name">{game.awayTeam.name}</span>
           <span className="team-score">{game.status !== 'pre' ? game.awayTeam.score : ''}</span>
         </div>
@@ -58,9 +57,7 @@ export function GameCard({ game, sportId, isFavorite, toggleFavorite, onClick, i
           >
             {isFavorite(game.homeTeam.id, sportId) ? '★' : '☆'}
           </button>
-          {game.homeTeam.logo && (
-            <img src={game.homeTeam.logo} alt={game.homeTeam.name} className="team-logo" loading="lazy" decoding="async" />
-          )}
+          <TeamLogo src={game.homeTeam.logo} size={32} alt={game.homeTeam.name} className="team-logo" />
           <span className="team-name">{game.homeTeam.name}</span>
           <span className="team-score">{game.status !== 'pre' ? game.homeTeam.score : ''}</span>
         </div>

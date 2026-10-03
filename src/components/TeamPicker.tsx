@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { FavoriteTeam } from '../hooks/useFavorites'
-import { teamsUrl } from '../espn'
+import { LEAGUES, fetchTeams } from '../espn'
+import { TeamLogo } from './TeamLogo'
 import './TeamPicker.css'
 
 interface Team {
@@ -17,16 +18,6 @@ interface Props {
   initialCount: number
 }
 
-const LEAGUES = [
-  { id: 'epl', name: 'Premier League', slug: 'soccer/eng.1' },
-  { id: 'ncaaf', name: 'College Football', slug: 'football/college-football' },
-  { id: 'nfl', name: 'NFL', slug: 'football/nfl' },
-  { id: 'nba', name: 'NBA', slug: 'basketball/nba' },
-  { id: 'mlb', name: 'MLB', slug: 'baseball/mlb' },
-  { id: 'nhl', name: 'NHL', slug: 'hockey/nhl' },
-  { id: 'ncaab', name: 'College Basketball', slug: 'basketball/mens-college-basketball' },
-]
-
 export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCount }: Props) {
   const [selectedLeague, setSelectedLeague] = useState(LEAGUES[0])
   const [teams, setTeams] = useState<Team[]>([])
@@ -40,24 +31,24 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCoun
     : teams
 
   useEffect(() => {
-    async function fetchTeams() {
+    let cancelled = false
+    async function loadTeams() {
       setLoading(true)
+      let teamList: Team[] = []
       try {
-        const res = await fetch(teamsUrl(selectedLeague.slug))
-        const data = await res.json()
-        const teamList: Team[] = data.sports?.[0]?.leagues?.[0]?.teams?.map((t: any) => ({
-          id: t.team.id,
-          name: t.team.displayName,
-          abbreviation: t.team.abbreviation,
-          logo: t.team.logos?.[0]?.href || '',
-        })) || []
-        setTeams(teamList.sort((a, b) => a.name.localeCompare(b.name)))
+        teamList = (await fetchTeams(selectedLeague.espnSlug)).sort((a, b) => a.name.localeCompare(b.name))
       } catch {
-        setTeams([])
+        // Show an empty list; switching tabs retries
       }
+      // Ignore a slow response for a league tab the user already left
+      if (cancelled) return
+      setTeams(teamList)
       setLoading(false)
     }
-    fetchTeams()
+    loadTeams()
+    return () => {
+      cancelled = true
+    }
   }, [selectedLeague])
 
   const handleTeamClick = (team: Team) => {
@@ -86,7 +77,7 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCoun
             className={`league-tab ${selectedLeague.id === league.id ? 'active' : ''}`}
             onClick={() => setSelectedLeague(league)}
           >
-            {league.name}
+            {league.fullName}
           </button>
         ))}
       </div>
@@ -94,7 +85,7 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCoun
       <div className="team-search">
         <input
           type="search"
-          placeholder={`Search ${selectedLeague.name} teams`}
+          placeholder={`Search ${selectedLeague.fullName} teams`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           autoCorrect="off"
@@ -112,7 +103,7 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCoun
               className={`team-btn ${isFavorite(team.id, selectedLeague.id) ? 'selected' : ''}`}
               onClick={() => handleTeamClick(team)}
             >
-              {team.logo && <img src={team.logo} alt="" className="team-logo" loading="lazy" decoding="async" />}
+              <TeamLogo src={team.logo} size={48} className="team-logo" />
               <span className="team-name">{team.name}</span>
               {isFavorite(team.id, selectedLeague.id) && <span className="check">✓</span>}
             </button>

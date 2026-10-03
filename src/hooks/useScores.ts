@@ -1,82 +1,35 @@
 import { useState, useEffect } from 'react'
-import type { Game, Sport } from '../types'
-import { scoreboardUrl } from '../espn'
+import type { Game } from '../types'
+import { fetchScoreboard, type League } from '../espn'
+import { readCache, writeCache } from '../cache'
 import { startPolling } from '../polling'
 
-export function useScores(sport: Sport) {
-  const [games, setGames] = useState<Game[]>([])
-  const [loading, setLoading] = useState(true)
+export function useScores(league: League) {
+  const cacheKey = `scoreboard:${league.id}`
+  // Start from the last-known scores (switching leagues re-keys this hook's state via `key`)
+  const [games, setGames] = useState<Game[]>(() => readCache<Game[]>(cacheKey) || [])
+  const [loading, setLoading] = useState(games.length === 0)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    let isFirstLoad = true
+    let hasLoaded = false
 
     async function fetchScores() {
-      // Only show loading spinner on first load, not refreshes
-      if (isFirstLoad) {
-        setLoading(true)
-      }
-
       try {
-        const response = await fetch(scoreboardUrl(sport.espnSlug))
-        if (!response.ok) throw new Error('Failed to fetch scores')
-
-        const data = await response.json()
+        const games = await fetchScoreboard(league.espnSlug)
         if (cancelled) return
-
-        const now = Date.now()
-        const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
-
-        const games: Game[] = (data.events || [])
-          .map((event: any) => {
-            const competition = event.competitions?.[0]
-            const homeTeam = competition?.competitors?.find((c: any) => c.homeAway === 'home')
-            const awayTeam = competition?.competitors?.find((c: any) => c.homeAway === 'away')
-
-            return {
-              id: event.id,
-              status: event.status?.type?.state || 'pre',
-              statusDetail: event.status?.type?.shortDetail || '',
-              startTime: event.date,
-              homeTeam: {
-                id: homeTeam?.team?.id || '',
-                name: homeTeam?.team?.displayName || 'TBD',
-                abbreviation: homeTeam?.team?.abbreviation || '',
-                logo: homeTeam?.team?.logo || '',
-                score: parseInt(homeTeam?.score || '0', 10),
-              },
-              awayTeam: {
-                id: awayTeam?.team?.id || '',
-                name: awayTeam?.team?.displayName || 'TBD',
-                abbreviation: awayTeam?.team?.abbreviation || '',
-                logo: awayTeam?.team?.logo || '',
-                score: parseInt(awayTeam?.score || '0', 10),
-              },
-              venue: competition?.venue?.fullName,
-              broadcast: competition?.broadcasts?.[0]?.names?.[0],
-            }
-          })
-          .filter((game: Game) => {
-            // Keep all non-finished games
-            if (game.status !== 'post') return true
-            // For finished games, only keep those within 48 hours
-            const gameTime = new Date(game.startTime).getTime()
-            return now - gameTime < FORTY_EIGHT_HOURS
-          })
-
+        hasLoaded = true
         setGames(games)
         setError(null)
+        writeCache(cacheKey, games)
       } catch (err) {
         // A failed background refresh keeps showing the last good scores
-        if (!cancelled && isFirstLoad) {
+        if (!cancelled && !hasLoaded) {
           setError(err instanceof Error ? err.message : 'Unknown error')
         }
       } finally {
-        if (!cancelled && isFirstLoad) {
-          setLoading(false)
-          isFirstLoad = false
-        }
+        if (!cancelled) setLoading(false)
       }
     }
 
@@ -87,7 +40,7 @@ export function useScores(sport: Sport) {
       cancelled = true
       stopPolling()
     }
-  }, [sport.espnSlug])
+  }, [league.espnSlug, cacheKey])
 
   return { games, loading, error }
 }

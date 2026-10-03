@@ -1,9 +1,3 @@
-export interface Sport {
-  id: string
-  name: string
-  espnSlug: string
-}
-
 export interface Team {
   id: string
   name: string

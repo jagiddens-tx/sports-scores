@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { Game, GameEvent, TeamStats, ScoringPlay } from '../types'
+import {
+  fetchJson, findCompetitor, scoreboardUrl, summaryUrl,
+  type EspnRoster, type EspnScoreboard, type EspnStatistic, type EspnSummary,
+} from '../espn'
 import { startPolling } from '../polling'
 import './GameDetail.css'
 
 interface Props {
   game: Game
-  sportId: string
-  espnSlug?: string  // Optional: use this slug instead of looking up from sportId
+  espnSlug: string  // The ESPN competition this game belongs to
 }
 
 interface Player {
@@ -35,200 +38,140 @@ interface GameDetails {
   awayLineup?: TeamLineup
 }
 
-const SPORT_SLUGS: Record<string, string> = {
-  epl: 'soccer/eng.1',
-  mls: 'soccer/usa.1',
-  ncaaf: 'football/college-football',
-  nfl: 'football/nfl',
+function parseFootballStats(statistics: EspnStatistic[] = []): TeamStats {
+  const stats: TeamStats = {}
+  for (const stat of statistics) {
+    if (stat.name === 'totalYards') stats.totalYards = parseInt(stat.displayValue)
+    if (stat.name === 'netPassingYards' || stat.name === 'passingYards') stats.passingYards = parseInt(stat.displayValue)
+    if (stat.name === 'rushingYards') stats.rushingYards = parseInt(stat.displayValue)
+    if (stat.name === 'turnovers') stats.turnovers = parseInt(stat.displayValue)
+    if (stat.name === 'possessionTime') stats.timeOfPossession = stat.displayValue
+    if (stat.name === 'thirdDownEff') stats.thirdDownEff = stat.displayValue
+    if (stat.name === 'firstDowns') stats.firstDowns = parseInt(stat.displayValue)
+  }
+  return stats
 }
 
-const FOOTBALL_SPORTS = ['ncaaf', 'nfl']
-const SOCCER_SPORTS = ['epl', 'mls']
+function parseSoccerStats(statistics: EspnStatistic[] = []): TeamStats {
+  const stats: TeamStats = {}
+  for (const stat of statistics) {
+    if (stat.name === 'possessionPct') stats.possession = stat.displayValue
+    if (stat.name === 'totalShots') stats.shots = parseInt(stat.displayValue)
+    if (stat.name === 'shotsOnTarget') stats.shotsOnTarget = parseInt(stat.displayValue)
+    if (stat.name === 'wonCorners') stats.corners = parseInt(stat.displayValue)
+    if (stat.name === 'foulsCommitted') stats.fouls = parseInt(stat.displayValue)
+  }
+  return stats
+}
 
-export function GameDetail({ game, sportId, espnSlug }: Props) {
+function parseLineup(roster: EspnRoster): TeamLineup {
+  const team = roster.team
+  return {
+    teamId: team?.id || '',
+    teamName: team?.displayName || '',
+    teamAbbr: team?.abbreviation || '',
+    formation: roster.formation,
+    players: (roster.roster || []).map(p => ({
+      name: p.athlete?.displayName || '',
+      jersey: p.jersey || '',
+      position: p.position?.displayName || '',
+      positionAbbr: p.position?.abbreviation || '',
+      starter: p.starter || false,
+    })),
+  }
+}
+
+async function fetchFootballDetails(slug: string, gameId: string): Promise<GameDetails> {
+  // Football uses the summary endpoint for detailed stats
+  const data = await fetchJson<EspnSummary>(summaryUrl(slug, gameId))
+  const teams = data.boxscore?.teams || []
+  return {
+    events: [],
+    homeStats: parseFootballStats(teams.find(t => t.homeAway === 'home')?.statistics),
+    awayStats: parseFootballStats(teams.find(t => t.homeAway === 'away')?.statistics),
+    scoringPlays: (data.scoringPlays || []).map(play => ({
+      quarter: play.period?.number ? `Q${play.period.number}` : '',
+      clock: play.clock?.displayValue || '',
+      teamId: play.team?.id || '',
+      teamLogo: play.team?.logo || '',
+      type: play.type?.abbreviation || play.type?.text || '',
+      description: play.text || '',
+      homeScore: play.homeScore || 0,
+      awayScore: play.awayScore || 0,
+    })),
+    attendance: data.gameInfo?.attendance,
+  }
+}
+
+async function fetchSoccerDetails(slug: string, gameId: string): Promise<GameDetails> {
+  // Soccer: the scoreboard has match events and stats, the summary has lineups
+  const [scoreboard, summary] = await Promise.all([
+    fetchJson<EspnScoreboard>(scoreboardUrl(slug)),
+    fetchJson<EspnSummary>(summaryUrl(slug, gameId)),
+  ])
+  const rosters = summary.rosters || []
+  const homeRoster = rosters.find(r => r.homeAway === 'home')
+  const awayRoster = rosters.find(r => r.homeAway === 'away')
+  const details: GameDetails = {
+    events: [],
+    homeLineup: homeRoster && parseLineup(homeRoster),
+    awayLineup: awayRoster && parseLineup(awayRoster),
+  }
+
+  // Older matches drop off the scoreboard; still show their lineups
+  const competition = scoreboard.events?.find(e => e.id === gameId)?.competitions?.[0]
+  if (!competition) return details
+
+  details.events = (competition.details || []).map(d => {
+    let type: GameEvent['type'] = 'goal'
+    if (d.yellowCard) type = 'yellow_card'
+    if (d.redCard) type = 'red_card'
+    if (d.type?.text === 'Substitution') type = 'substitution'
+    if (d.scoringPlay) type = 'goal'
+
+    const athlete = d.athletesInvolved?.[0]
+    return {
+      type,
+      minute: d.clock?.displayValue || '',
+      teamId: d.team?.id || '',
+      player: {
+        name: athlete?.displayName || 'Unknown',
+        headshot: athlete?.headshot,
+        position: athlete?.position,
+      },
+      isOwnGoal: d.ownGoal,
+      isPenalty: d.penaltyKick,
+    }
+  })
+  details.homeStats = parseSoccerStats(findCompetitor(competition, 'home')?.statistics)
+  details.awayStats = parseSoccerStats(findCompetitor(competition, 'away')?.statistics)
+  details.attendance = competition.attendance
+  return details
+}
+
+export function GameDetail({ game, espnSlug }: Props) {
   const [details, setDetails] = useState<GameDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'match' | 'home' | 'away'>('match')
 
-  // Determine sport type from sportId or espnSlug
-  const isSoccer = SOCCER_SPORTS.includes(sportId) || espnSlug?.startsWith('soccer/')
+  const isSoccer = espnSlug.startsWith('soccer/')
+  const isFootball = espnSlug.startsWith('football/')
 
   useEffect(() => {
     let cancelled = false
 
     const fetchDetails = async () => {
-      // Use provided espnSlug, or fall back to lookup
-      const slug = espnSlug || SPORT_SLUGS[sportId]
-      if (!slug) {
-        setLoading(false)
-        return
-      }
-
-      const isFootball = FOOTBALL_SPORTS.includes(sportId)
-      const isSoccerFetch = SOCCER_SPORTS.includes(sportId) || slug.startsWith('soccer/')
-
       try {
-        let events: GameEvent[] = []
-        let scoringPlays: ScoringPlay[] = []
-        let homeStats: TeamStats = {}
-        let awayStats: TeamStats = {}
-        let attendance: number | undefined
-        let homeLineup: TeamLineup | undefined
-        let awayLineup: TeamLineup | undefined
-
-        if (isFootball) {
-          // Football uses the summary endpoint for detailed stats
-          const endpoint = `https://site.api.espn.com/apis/site/v2/sports/${slug}/summary?event=${game.id}`
-          const res = await fetch(endpoint)
-          const data = await res.json()
-
-          // Parse football data from summary endpoint
-          const boxscore = data.boxscore
-          if (boxscore?.teams) {
-            for (const team of boxscore.teams) {
-              const isHome = team.homeAway === 'home'
-              const stats: TeamStats = {}
-              for (const stat of team.statistics || []) {
-                if (stat.name === 'totalYards') stats.totalYards = parseInt(stat.displayValue)
-                if (stat.name === 'netPassingYards' || stat.name === 'passingYards') stats.passingYards = parseInt(stat.displayValue)
-                if (stat.name === 'rushingYards') stats.rushingYards = parseInt(stat.displayValue)
-                if (stat.name === 'turnovers') stats.turnovers = parseInt(stat.displayValue)
-                if (stat.name === 'possessionTime') stats.timeOfPossession = stat.displayValue
-                if (stat.name === 'thirdDownEff') stats.thirdDownEff = stat.displayValue
-                if (stat.name === 'firstDowns') stats.firstDowns = parseInt(stat.displayValue)
-              }
-              if (isHome) {
-                homeStats = stats
-              } else {
-                awayStats = stats
-              }
-            }
-          }
-
-          // Parse scoring plays from summary
-          if (data.scoringPlays) {
-            scoringPlays = data.scoringPlays.map((play: any) => ({
-              quarter: play.period?.number ? `Q${play.period.number}` : '',
-              clock: play.clock?.displayValue || '',
-              teamId: play.team?.id || '',
-              teamLogo: play.team?.logo || '',
-              type: play.type?.abbreviation || play.type?.text || '',
-              description: play.text || '',
-              homeScore: play.homeScore || 0,
-              awayScore: play.awayScore || 0,
-            }))
-          }
-
-          // Get attendance from gameInfo
-          attendance = data.gameInfo?.attendance
-
-        } else if (isSoccerFetch) {
-          // Soccer: fetch both scoreboard (for match events) and summary (for lineups)
-          const [scoreboardRes, summaryRes] = await Promise.all([
-            fetch(`https://site.api.espn.com/apis/site/v2/sports/${slug}/scoreboard`),
-            fetch(`https://site.api.espn.com/apis/site/v2/sports/${slug}/summary?event=${game.id}`)
-          ])
-
-          const scoreboardData = await scoreboardRes.json()
-          const summaryData = await summaryRes.json()
-
-          // Parse match events from scoreboard
-          const event = scoreboardData.events?.find((e: any) => e.id === game.id)
-          if (!event) {
-            setLoading(false)
-            return
-          }
-
-          const competition = event.competitions?.[0]
-          if (!competition) {
-            setLoading(false)
-            return
-          }
-
-          events = (competition.details || []).map((d: any) => {
-            let type: GameEvent['type'] = 'goal'
-            if (d.yellowCard) type = 'yellow_card'
-            if (d.redCard) type = 'red_card'
-            if (d.type?.text === 'Substitution') type = 'substitution'
-            if (d.scoringPlay) type = 'goal'
-
-            const athlete = d.athletesInvolved?.[0]
-
-            return {
-              type,
-              minute: d.clock?.displayValue || '',
-              teamId: d.team?.id || '',
-              player: {
-                name: athlete?.displayName || 'Unknown',
-                headshot: athlete?.headshot,
-                position: athlete?.position,
-              },
-              isOwnGoal: d.ownGoal,
-              isPenalty: d.penaltyKick,
-            }
-          })
-
-          const homeTeam = competition.competitors?.find((c: any) => c.homeAway === 'home')
-          const awayTeam = competition.competitors?.find((c: any) => c.homeAway === 'away')
-
-          const parseStats = (team: any): TeamStats => {
-            const stats: TeamStats = {}
-            for (const stat of team?.statistics || []) {
-              if (stat.name === 'possessionPct') stats.possession = stat.displayValue
-              if (stat.name === 'totalShots') stats.shots = parseInt(stat.displayValue)
-              if (stat.name === 'shotsOnTarget') stats.shotsOnTarget = parseInt(stat.displayValue)
-              if (stat.name === 'wonCorners') stats.corners = parseInt(stat.displayValue)
-              if (stat.name === 'foulsCommitted') stats.fouls = parseInt(stat.displayValue)
-            }
-            return stats
-          }
-
-          homeStats = parseStats(homeTeam)
-          awayStats = parseStats(awayTeam)
-          attendance = competition.attendance
-
-          // Parse lineups from summary
-          const parseLineup = (roster: any): TeamLineup => {
-            const team = roster.team || {}
-            return {
-              teamId: team.id || '',
-              teamName: team.displayName || '',
-              teamAbbr: team.abbreviation || '',
-              formation: roster.formation,
-              players: (roster.roster || []).map((p: any) => ({
-                name: p.athlete?.displayName || '',
-                jersey: p.jersey || '',
-                position: p.position?.displayName || '',
-                positionAbbr: p.position?.abbreviation || '',
-                starter: p.starter || false,
-              }))
-            }
-          }
-
-          for (const roster of summaryData.rosters || []) {
-            const isHome = roster.homeAway === 'home'
-            if (isHome) {
-              homeLineup = parseLineup(roster)
-            } else {
-              awayLineup = parseLineup(roster)
-            }
-          }
-        }
-
-        if (cancelled) return
-        setDetails({
-          events,
-          scoringPlays: scoringPlays.length > 0 ? scoringPlays : undefined,
-          homeStats,
-          awayStats,
-          attendance,
-          homeLineup,
-          awayLineup,
-        })
+        const result = isFootball
+          ? await fetchFootballDetails(espnSlug, game.id)
+          : isSoccer
+            ? await fetchSoccerDetails(espnSlug, game.id)
+            : null
+        if (!cancelled && result) setDetails(result)
       } catch (err) {
         console.error('Failed to fetch game details:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
@@ -243,9 +186,7 @@ export function GameDetail({ game, sportId, espnSlug }: Props) {
       cancelled = true
       stopPolling?.()
     }
-  }, [game.id, game.status, sportId, espnSlug])
-
-  const isFootball = FOOTBALL_SPORTS.includes(sportId)
+  }, [game.id, game.status, espnSlug, isFootball, isSoccer])
 
   const goals = details?.events.filter(e => e.type === 'goal') || []
   const cards = details?.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card') || []

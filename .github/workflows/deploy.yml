@@ -14,13 +14,36 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run build
+
+      # The API token can see more than one Cloudflare account, so pick the one
+      # that already hosts this Worker (or use the CLOUDFLARE_ACCOUNT_ID secret if set)
+      - name: Select Cloudflare account
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID_SECRET: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$ACCOUNT_ID_SECRET" ]; then
+            echo "CLOUDFLARE_ACCOUNT_ID=$ACCOUNT_ID_SECRET" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4$1"; }
+          api "/accounts?per_page=50" | jq -r '.result[] | "\(.id)\t\(.name)"' > accounts.tsv
+          while IFS=$'\t' read -r id name; do
+            if [ "$(api "/accounts/$id/workers/scripts/sports-scores/settings" | jq -r '.success')" = "true" ]; then
+              echo "Deploying to Cloudflare account: $name"
+              echo "CLOUDFLARE_ACCOUNT_ID=$id" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done < accounts.tsv
+          echo "::error::No Cloudflare account has a sports-scores Worker. Add a CLOUDFLARE_ACCOUNT_ID repository secret."
+          exit 1
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy

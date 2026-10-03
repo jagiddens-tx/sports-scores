@@ -5,23 +5,13 @@ import { ScoreBoard } from './components/ScoreBoard'
 import { TeamPicker } from './components/TeamPicker'
 import { MyTeamsView } from './components/MyTeamsView'
 import { useFavorites } from './hooks/useFavorites'
-import type { Sport } from './types'
-
-const SPORTS: Sport[] = [
-  { id: 'epl', name: 'EPL', espnSlug: 'soccer/eng.1' },
-  { id: 'ncaaf', name: 'CFB', espnSlug: 'football/college-football' },
-  { id: 'nfl', name: 'NFL', espnSlug: 'football/nfl' },
-  { id: 'nba', name: 'NBA', espnSlug: 'basketball/nba' },
-  { id: 'mlb', name: 'MLB', espnSlug: 'baseball/mlb' },
-  { id: 'nhl', name: 'NHL', espnSlug: 'hockey/nhl' },
-  { id: 'ncaab', name: 'CBB', espnSlug: 'basketball/mens-college-basketball' },
-]
+import { LEAGUES, type League } from './espn'
 
 type View = 'my-teams' | 'all-scores' | 'pick-teams'
 
 function App() {
   const { favorites, isFavorite, toggleFavorite, hasCompletedSetup, completeSetup } = useFavorites()
-  const [selectedSport, setSelectedSport] = useState<Sport>(SPORTS[0])
+  const [selectedLeague, setSelectedLeague] = useState<League>(LEAGUES[0])
   const [view, setView] = useState<View>(hasCompletedSetup ? 'my-teams' : 'pick-teams')
 
   // First time user - show team picker
@@ -68,12 +58,13 @@ function App() {
       ) : (
         <>
           <SportSelector
-            sports={SPORTS}
-            selected={selectedSport}
-            onSelect={setSelectedSport}
+            leagues={LEAGUES}
+            selected={selectedLeague}
+            onSelect={setSelectedLeague}
           />
           <ScoreBoard
-            sport={selectedSport}
+            key={selectedLeague.id}
+            league={selectedLeague}
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
           />

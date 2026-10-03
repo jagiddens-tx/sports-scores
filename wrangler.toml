@@ -1,5 +1,21 @@
 name = "sports-scores"
-compatibility_date = "2024-01-01"
+main = "worker/index.ts"
+compatibility_date = "2025-09-01"
 
+# The built app; requests that don't match a file fall through to the Worker
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+
+# Stores push subscriptions and the last seen state of each game
+[[durable_objects.bindings]]
+name = "PUSH_HUB"
+class_name = "PushHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PushHub"]
+
+# Check followed teams' games for score changes every minute
+[triggers]
+crons = ["* * * * *"]
