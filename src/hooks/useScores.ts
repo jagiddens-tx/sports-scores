@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Game, Sport } from '../types'
-
-const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
+import { scoreboardUrl } from '../espn'
+import { startPolling } from '../polling'
 
 export function useScores(sport: Sport) {
   const [games, setGames] = useState<Game[]>([])
@@ -17,10 +17,9 @@ export function useScores(sport: Sport) {
       if (isFirstLoad) {
         setLoading(true)
       }
-      setError(null)
 
       try {
-        const response = await fetch(`${ESPN_API}/${sport.espnSlug}/scoreboard`)
+        const response = await fetch(scoreboardUrl(sport.espnSlug))
         if (!response.ok) throw new Error('Failed to fetch scores')
 
         const data = await response.json()
@@ -67,8 +66,10 @@ export function useScores(sport: Sport) {
           })
 
         setGames(games)
+        setError(null)
       } catch (err) {
-        if (!cancelled) {
+        // A failed background refresh keeps showing the last good scores
+        if (!cancelled && isFirstLoad) {
           setError(err instanceof Error ? err.message : 'Unknown error')
         }
       } finally {
@@ -79,14 +80,12 @@ export function useScores(sport: Sport) {
       }
     }
 
-    fetchScores()
-
     // Refresh every 30 seconds for live games
-    const interval = setInterval(fetchScores, 30000)
+    const stopPolling = startPolling(fetchScores, 30000)
 
     return () => {
       cancelled = true
-      clearInterval(interval)
+      stopPolling()
     }
   }, [sport.espnSlug])
 

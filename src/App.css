@@ -2,6 +2,11 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 1rem;
+  /* Keep content clear of the notch / Dynamic Island and home indicator in the PWA */
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding-left: calc(1rem + env(safe-area-inset-left));
+  padding-right: calc(1rem + env(safe-area-inset-right));
 }
 
 header {

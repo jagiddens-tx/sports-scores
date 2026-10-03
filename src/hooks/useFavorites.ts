@@ -12,23 +12,22 @@ export interface FavoriteTeam {
 }
 
 export function useFavorites() {
-  const [favorites, setFavorites] = useState<FavoriteTeam[]>([])
+  // Read saved favorites synchronously so the first render already has them
+  // (loading in an effect made My Teams fetch with an empty list first)
+  const [favorites, setFavorites] = useState<FavoriteTeam[]>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return []
+    try {
+      return JSON.parse(stored)
+    } catch {
+      // Invalid JSON, reset
+      localStorage.removeItem(STORAGE_KEY)
+      return []
+    }
+  })
   const [hasCompletedSetup, setHasCompletedSetup] = useState(() => {
     return localStorage.getItem(SETUP_KEY) === 'true'
   })
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        setFavorites(JSON.parse(stored))
-      } catch {
-        // Invalid JSON, reset
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    }
-  }, [])
 
   // Save to localStorage on change
   useEffect(() => {

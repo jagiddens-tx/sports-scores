@@ -1,5 +1,6 @@
 .team-picker {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -7,6 +8,7 @@
 .picker-header {
   text-align: center;
   padding: 1.5rem 1rem 1rem;
+  padding-top: calc(1.5rem + env(safe-area-inset-top));
 }
 
 .picker-header h1 {
@@ -27,7 +29,7 @@
   overflow-x: auto;
   background: #1a1a2e;
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top);
   z-index: 10;
 }
 
@@ -109,6 +111,7 @@
 
 .picker-footer {
   padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   background: #0a0a14;
   position: sticky;
   bottom: 0;
@@ -147,4 +150,37 @@
 
 .update-link:hover {
   color: #888;
+}
+
+.team-search {
+  padding: 0.75rem 1rem 0;
+}
+
+.team-search input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #2a2a40;
+  border-radius: 10px;
+  background: #1a1a2e;
+  color: #fff;
+  /* 16px+ stops iOS Safari from zooming in on focus */
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.team-search input:focus {
+  outline: none;
+  border-color: #4a4ae8;
+}
+
+/* Solid backdrop behind the translucent iOS status bar so scrolled teams don't show through */
+.team-picker::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: #0a0a14;
+  z-index: 11;
 }

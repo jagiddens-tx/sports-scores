@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Game, GameEvent, TeamStats, ScoringPlay } from '../types'
+import { startPolling } from '../polling'
 import './GameDetail.css'
 
 interface Props {
@@ -53,6 +54,8 @@ export function GameDetail({ game, sportId, espnSlug }: Props) {
   const isSoccer = SOCCER_SPORTS.includes(sportId) || espnSlug?.startsWith('soccer/')
 
   useEffect(() => {
+    let cancelled = false
+
     const fetchDetails = async () => {
       // Use provided espnSlug, or fall back to lookup
       const slug = espnSlug || SPORT_SLUGS[sportId]
@@ -212,6 +215,7 @@ export function GameDetail({ game, sportId, espnSlug }: Props) {
           }
         }
 
+        if (cancelled) return
         setDetails({
           events,
           scoringPlays: scoringPlays.length > 0 ? scoringPlays : undefined,
@@ -228,8 +232,18 @@ export function GameDetail({ game, sportId, espnSlug }: Props) {
       }
     }
 
-    fetchDetails()
-  }, [game.id, sportId, espnSlug])
+    // Live games keep updating while expanded; others only need one fetch
+    let stopPolling: (() => void) | undefined
+    if (game.status === 'in') {
+      stopPolling = startPolling(fetchDetails, 30000)
+    } else {
+      fetchDetails()
+    }
+    return () => {
+      cancelled = true
+      stopPolling?.()
+    }
+  }, [game.id, game.status, sportId, espnSlug])
 
   const isFootball = FOOTBALL_SPORTS.includes(sportId)
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { FavoriteTeam } from '../hooks/useFavorites'
+import { teamsUrl } from '../espn'
 import './TeamPicker.css'
 
 interface Team {
@@ -26,19 +27,23 @@ const LEAGUES = [
   { id: 'ncaab', name: 'College Basketball', slug: 'basketball/mens-college-basketball' },
 ]
 
-const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
-
 export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCount }: Props) {
   const [selectedLeague, setSelectedLeague] = useState(LEAGUES[0])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCount, setSelectedCount] = useState(initialCount)
+  const [search, setSearch] = useState('')
+
+  const query = search.trim().toLowerCase()
+  const visibleTeams = query
+    ? teams.filter(t => t.name.toLowerCase().includes(query) || t.abbreviation.toLowerCase().includes(query))
+    : teams
 
   useEffect(() => {
     async function fetchTeams() {
       setLoading(true)
       try {
-        const res = await fetch(`${ESPN_API}/${selectedLeague.slug}/teams?limit=100`)
+        const res = await fetch(teamsUrl(selectedLeague.slug))
         const data = await res.json()
         const teamList: Team[] = data.sports?.[0]?.leagues?.[0]?.teams?.map((t: any) => ({
           id: t.team.id,
@@ -86,17 +91,28 @@ export function TeamPicker({ onComplete, toggleFavorite, isFavorite, initialCoun
         ))}
       </div>
 
+      <div className="team-search">
+        <input
+          type="search"
+          placeholder={`Search ${selectedLeague.name} teams`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          autoCorrect="off"
+          autoCapitalize="off"
+        />
+      </div>
+
       <div className="teams-grid">
         {loading ? (
           <div className="loading">Loading teams...</div>
         ) : (
-          teams.map((team) => (
+          visibleTeams.map((team) => (
             <button
               key={team.id}
               className={`team-btn ${isFavorite(team.id, selectedLeague.id) ? 'selected' : ''}`}
               onClick={() => handleTeamClick(team)}
             >
-              {team.logo && <img src={team.logo} alt="" className="team-logo" />}
+              {team.logo && <img src={team.logo} alt="" className="team-logo" loading="lazy" decoding="async" />}
               <span className="team-name">{team.name}</span>
               {isFavorite(team.id, selectedLeague.id) && <span className="check">✓</span>}
             </button>

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { FavoriteTeam } from '../hooks/useFavorites'
 import type { Game } from '../types'
 import { GameCard } from './GameCard'
 import { GameDetail } from './GameDetail'
+import { scoreboardUrl } from '../espn'
+import { startPolling } from '../polling'
 import './MyTeamsView.css'
 
 interface FavoriteGame {
@@ -34,29 +36,33 @@ const EPL_EXTRA_COMPETITIONS = [
   'soccer/uefa.europa',    // Europa League
 ]
 
-const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports'
-
 const SPORTS_WITH_DETAILS = ['epl', 'mls', 'ncaaf', 'nfl']
 
 export function MyTeamsView({ favorites, onEditTeams }: Props) {
   const [games, setGames] = useState<FavoriteGame[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [fetchFailed, setFetchFailed] = useState(false)
 
-  const isFavorite = (teamId: string) => favorites.some(f => f.id === teamId)
+  const hasLoaded = useRef(false)
+
+  // Team IDs are only unique within a sport, so match on both
+  const isFavorite = (teamId: string, sport: string) =>
+    favorites.some(f => f.id === teamId && f.sport === sport)
 
   useEffect(() => {
-    let isFirstLoad = games.length === 0
+    let cancelled = false
     const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
 
     async function fetchGames() {
       // Only show loading spinner on first load, not refreshes
-      if (isFirstLoad) {
+      if (!hasLoaded.current) {
         setLoading(true)
       }
       const now = Date.now()
       const allGames: FavoriteGame[] = []
       const seenGameIds = new Set<string>()
+      let failures = 0
 
       // Group favorites by sport
       const sportGroups = new Map<string, FavoriteTeam[]>()
@@ -69,7 +75,8 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
       // Helper to fetch games from a slug and add matching favorites
       async function fetchFromSlug(slug: string, teams: FavoriteTeam[], sportId: string) {
         try {
-          const res = await fetch(`${ESPN_API}/${slug}/scoreboard`)
+          const res = await fetch(scoreboardUrl(slug))
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const data = await res.json()
 
           for (const event of data.events || []) {
@@ -122,41 +129,51 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
             }
           }
         } catch {
-          // Skip failed fetches
+          // Skip failed fetches, but count them so a total outage isn't shown as "no games"
+          failures++
         }
       }
 
-      // Fetch each sport
+      // Fetch every sport (and cup competition) in parallel
+      const requests: Promise<void>[] = []
       for (const [sport, teams] of sportGroups) {
         const slug = SPORT_SLUGS[sport]
         if (!slug) continue
 
-        await fetchFromSlug(slug, teams, sport)
+        requests.push(fetchFromSlug(slug, teams, sport))
 
         // For EPL teams, also check other competitions they might be playing in
         if (sport === 'epl') {
           for (const extraSlug of EPL_EXTRA_COMPETITIONS) {
-            await fetchFromSlug(extraSlug, teams, 'epl')
+            requests.push(fetchFromSlug(extraSlug, teams, 'epl'))
           }
         }
       }
+      await Promise.all(requests)
 
-      // Sort: live games first, then upcoming, then final
+      // Sort: live games first, then upcoming (soonest first), then final (most recent first)
       allGames.sort((a, b) => {
         const order = { in: 0, pre: 1, post: 2 }
-        return order[a.game.status] - order[b.game.status]
+        const byStatus = order[a.game.status] - order[b.game.status]
+        if (byStatus !== 0) return byStatus
+        const timeDiff = new Date(a.game.startTime).getTime() - new Date(b.game.startTime).getTime()
+        return a.game.status === 'post' ? -timeDiff : timeDiff
       })
 
+      // A newer fetch (e.g. after editing teams) owns the state now
+      if (cancelled) return
+
       setGames(allGames)
-      if (isFirstLoad) {
-        setLoading(false)
-        isFirstLoad = false
-      }
+      setFetchFailed(requests.length > 0 && failures === requests.length)
+      setLoading(false)
+      hasLoaded.current = true
     }
 
-    fetchGames()
-    const interval = setInterval(fetchGames, 30000)
-    return () => clearInterval(interval)
+    const stopPolling = startPolling(fetchGames, 30000)
+    return () => {
+      cancelled = true
+      stopPolling()
+    }
   }, [favorites])
 
   const handleGameClick = (gameId: string) => {
@@ -181,7 +198,12 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
         <button className="edit-btn" onClick={onEditTeams}>Edit</button>
       </div>
 
-      {games.length === 0 ? (
+      {games.length === 0 && fetchFailed ? (
+        <div className="no-games">
+          <p>Couldn't load scores from ESPN</p>
+          <p className="hint">Will retry automatically</p>
+        </div>
+      ) : games.length === 0 ? (
         <div className="no-games">
           <p>No games today for your teams</p>
           <p className="hint">Check back later or browse all scores below</p>
@@ -196,7 +218,7 @@ export function MyTeamsView({ favorites, onEditTeams }: Props) {
                 <GameCard
                   game={game}
                   sportId={sportId}
-                  isFavorite={(teamId) => isFavorite(teamId)}
+                  isFavorite={isFavorite}
                   toggleFavorite={() => {}} // No-op, already favorites
                   onClick={hasDetails ? () => handleGameClick(game.id) : undefined}
                   isExpanded={isExpanded}
